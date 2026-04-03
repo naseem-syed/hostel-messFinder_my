@@ -15,6 +15,19 @@ async function loadOwnerData() {
         const user = await getCurrentUser();
         document.getElementById('ownerName').textContent = user.name;
 
+        // Setup sidebar avatar (initials or photo)
+        const avatarDiv = document.querySelector('.user-avatar');
+        if (!avatarDiv) {
+            // Some versions of owner-dashboard don't have .user-avatar, let's skip if not found
+        } else {
+            if (user.photo_url) {
+                avatarDiv.innerHTML = `<img src="${user.photo_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                avatarDiv.textContent = initials || 'ON';
+            }
+        }
+
         console.log('loadOwnerData - Current user ID:', user.id);
         console.log('loadOwnerData - Fetching mess from:', `${API_BASE_URL}/messes/owner/my-mess`);
         console.log('loadOwnerData - Auth headers:', getAuthHeaders());
@@ -35,8 +48,15 @@ async function loadOwnerData() {
                 console.log('loadOwnerData - Mess found:', ownerMess._id);
                 document.getElementById('noListing').style.display = 'none';
                 document.getElementById('listingDetails').style.display = 'block';
+                document.getElementById('studentsTabBtn').style.display = 'block';
+                document.getElementById('reviewsTabBtn').style.display = 'block';
                 displayListingDetails();
                 populateSettingsForm();
+                
+                // Load additional data
+                setupStudentManagement();
+                loadYourStudents(); // Unified list
+                loadPendingReviews();
             } else {
                 // No mess yet
                 console.log('loadOwnerData - No mess data in response');
@@ -364,3 +384,369 @@ function populateSettingsForm() {
     document.getElementById('settingsSnacksTime').value = snacks.time || '';
     document.getElementById('settingsSnacksDesc').value = snacks.description || '';
 }
+
+// ===================================
+// NEW OWNER FEATURES
+// ===================================
+
+let currentStudentPhotoBase64 = null;
+
+function setupStudentManagement() {
+    const photoInput = document.getElementById('studentPhotoInput');
+    const photoPreview = document.getElementById('studentPhotoPreview');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                currentStudentPhotoBase64 = reader.result;
+                photoPreview.src = currentStudentPhotoBase64;
+                photoPreview.style.display = 'block';
+            };
+        });
+    }
+
+    const studentEmailInput = document.getElementById('studentEmail');
+    if (studentEmailInput) {
+        studentEmailInput.addEventListener('blur', async () => {
+            const email = studentEmailInput.value.trim();
+            if (!email || !email.includes('@')) return;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/messes/owner/search-student?email=${encodeURIComponent(email)}`, {
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                
+                if (data.success && data.user) {
+                    const phoneInput = document.getElementById('studentPhone');
+                    if (phoneInput) phoneInput.value = data.user.phone || '';
+                    
+                    const msgObj = document.getElementById('studentMessage');
+                    msgObj.textContent = `Found registered student: ${data.user.name}. Phone number auto-filled!`;
+                    
+                    // If student has a photo, show it as suggested
+                    if (data.user.photo_url) {
+                        const preview = document.getElementById('studentPhotoPreview');
+                        if (preview && !currentStudentPhotoBase64) {
+                            preview.src = data.user.photo_url;
+                            preview.style.display = 'block';
+                            currentStudentPhotoBase64 = data.user.photo_url;
+                        }
+                    }
+                } else {
+                    document.getElementById('studentMessage').textContent = 'Note: This student has not registered yet. Data will be saved as provided.';
+                }
+            } catch (err) {
+                console.warn('Silent failure fetching student info', err);
+            }
+        });
+    }
+
+    const form = document.getElementById('addStudentForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('studentEmail').value;
+            const phone = document.getElementById('studentPhone').value;
+            const msgObj = document.getElementById('studentMessage');
+            const errObj = document.getElementById('studentError');
+            
+            msgObj.textContent = '';
+            errObj.textContent = '';
+
+            if (!currentStudentPhotoBase64) {
+                errObj.textContent = 'Please select a student profile photo.';
+                return;
+            }
+
+            try {
+                const submitBtn = document.getElementById('addStudentBtn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Verifying & Adding...';
+
+                const response = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/students`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        student_email: email,
+                        phone: phone,
+                        photo_url: currentStudentPhotoBase64
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    msgObj.textContent = 'Student verified and added successfully.';
+                    form.reset();
+                    const photoPreview = document.getElementById('studentPhotoPreview');
+                    if (photoPreview) photoPreview.style.display = 'none';
+                    currentStudentPhotoBase64 = null;
+                    await loadVerifiedStudents();
+                    await loadOwnerData(); // Refresh to update joined list
+                } else {
+                    errObj.textContent = data.message || 'Error adding student.';
+                }
+            } catch (error) {
+                errObj.textContent = 'System error.';
+            } finally {
+                const submitBtn = document.getElementById('addStudentBtn');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Verify & Add Student';
+            }
+        });
+    }
+}
+
+async function loadYourStudents() {
+    if (!ownerMess) return;
+    const container = document.getElementById('yourStudentsList');
+    const section = document.getElementById('yourStudentsSection');
+    if (!container || !section) return;
+
+    try {
+        // 1. Fetch Verified Students (manual)
+        const vResponse = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/students`, {
+            headers: getAuthHeaders()
+        });
+        const vData = await vResponse.json();
+        const verified = vData.success ? vData.data : [];
+
+        // 2. Fetch Joined Students (via browse)
+        const jResponse = await fetch(`${API_BASE_URL}/students/joined/${ownerMess._id}`, {
+            headers: getAuthHeaders()
+        });
+        const jData = await jResponse.json();
+        const joined = jData.success ? jData.data : [];
+
+        // Combine and Deduplicate by Email
+        const allStudentsMap = new Map();
+
+        // Process Joined first
+        joined.forEach(s => {
+            allStudentsMap.set(s.email.toLowerCase(), {
+                ...s,
+                student_email: s.email,
+                isJoined: true,
+                isVerified: false // Default, will override if in verified list
+            });
+        });
+
+        // Process Verified
+        verified.forEach(s => {
+            const email = s.student_email.toLowerCase();
+            const existing = allStudentsMap.get(email);
+            if (existing) {
+                allStudentsMap.set(email, { ...existing, ...s, isVerified: true });
+            } else {
+                allStudentsMap.set(email, { ...s, isVerified: true, isJoined: false });
+            }
+        });
+
+        const allStudents = Array.from(allStudentsMap.values());
+
+        if (allStudents.length > 0) {
+            section.style.display = 'block';
+            container.innerHTML = allStudents.map(student => {
+                const tags = [];
+                if (student.isVerified) tags.push('<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;">Verified</span>');
+                if (student.isJoined) tags.push('<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;">Joined</span>');
+                
+                const studentEmail = student.student_email || student.email;
+                const studentName = student.name || student.registeredName || studentEmail.split('@')[0];
+                const studentPhoto = student.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(studentEmail)}`;
+
+                return `
+                    <div class="review-item" style="border-left-color: #0f766e; display: flex; gap: 15px; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <img src="${studentPhoto}" 
+                                onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(studentEmail)}'"
+                                style="width:50px; height:50px; border-radius:50%; object-fit:cover; background:#f1f5f9;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <strong>${studentName}</strong>
+                                    ${tags.join(' ')}
+                                </div>
+                                <span style="color:#666; font-size:0.85rem;">Email: ${studentEmail}</span>
+                                <br>
+                                <span style="color:#666; font-size:0.85rem;">Phone: ${student.phone || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${student.isVerified ? `
+                                <button class="btn btn-primary btn-small" style="padding: 5px 10px; font-size: 0.75rem;" onclick="viewStudentDetails('${studentEmail}')">View Details</button>
+                                <button class="btn btn-secondary btn-small" style="padding: 5px 10px; font-size: 0.75rem;" onclick="deleteStudent('${studentEmail}')">Remove</button>
+                            ` : `
+                                <button class="btn btn-primary btn-small" style="padding: 5px 10px; font-size: 0.75rem;" onclick="quickVerify('${studentEmail}', '${student.phone || ''}', '${student.photo_url || ''}')">Verify Now</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            // Option 1: Hide section
+            section.style.display = 'none';
+            // Or Option 2 (backup if we wanted it always visible but helpful):
+            // section.style.display = 'block';
+            // container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Students will appear here after verification or joining.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading students:', error);
+        section.style.display = 'block';
+        container.innerHTML = `<p>Error loading students. Please try again.</p>`;
+    }
+}
+
+async function viewStudentDetails(email) {
+    if (!ownerMess) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/students/${email}`, {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            const student = data.data;
+            document.getElementById('modalStudentPhoto').src = student.photo_url;
+            document.getElementById('modalStudentName').textContent = student.registeredName;
+            document.getElementById('modalStudentEmail').textContent = student.email;
+            document.getElementById('modalStudentPhone').textContent = student.phone;
+            document.getElementById('modalHostelName').textContent = student.hostelName;
+            document.getElementById('modalDateVerified').textContent = new Date(student.dateVerified).toLocaleString();
+            
+            const modal = document.getElementById('studentDetailsModal');
+            modal.style.display = 'flex';
+        } else {
+            alert(data.message || 'Error fetching student details.');
+        }
+    } catch (error) {
+        console.error('Error fetching student details:', error);
+        alert('System error fetching student details.');
+    }
+}
+
+function closeStudentModal() {
+    const modal = document.getElementById('studentDetailsModal');
+    modal.style.display = 'none';
+}
+
+async function deleteStudent(email) {
+    if (!ownerMess) return;
+    if (!confirm(`Are you sure you want to delete student ${email}? This will remove their verified status and they will no longer be able to review your hostel.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/students/${email}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Student removed successfully.');
+            await loadYourStudents();
+            await loadOwnerData(); // Refresh to update joined list
+        } else {
+            alert(data.message || 'Error deleting student.');
+        }
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        alert('System error deleting student.');
+    }
+}
+
+
+
+async function quickVerify(email, phone, photoUrl) {
+    if (!confirm(`Do you want to quickly verify and authorize ${email} to leave reviews?`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/students`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                student_email: email,
+                phone: phone || 'N/A',
+                photo_url: photoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(email)
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Student authorized successfully!');
+            await loadYourStudents();
+        } else {
+            alert(data.message || 'Failed to authorize student.');
+        }
+    } catch (error) {
+        alert('System error.');
+    }
+}
+
+async function loadPendingReviews() {
+    if (!ownerMess) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/messes/${ownerMess._id}/reviews/pending`, {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        const container = document.getElementById('pendingReviewsContainer');
+        
+        if (data.success && data.data && data.data.length > 0) {
+            container.innerHTML = data.data.map(review => `
+                <div class="review-item" style="border-left-color: orange;">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <img src="${review.userId?.photo_url || 'images/default-avatar.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                        <div>
+                            <strong>${review.userId?.name || 'Unknown Student'}</strong> 
+                            <span style="color:#666; font-size:0.85rem;">(${review.userId?.email || 'N/A'})</span>
+                            <br>
+                            <span style="font-size: 0.85rem; color: #10b981; font-weight: bold;">[AI Identity Verified]</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: #666; font-style: italic;">
+                        "Review content and ratings are hidden for privacy until you approve this student."
+                    </p>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="approveReview('${review._id}', 'approved')">Approve Review</button>
+                        <button class="btn btn-secondary" onclick="approveReview('${review._id}', 'rejected')">Reject Review</button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<div class="no-content"><p>No pending reviews to approve.</p></div>`;
+        }
+    } catch (error) {
+        document.getElementById('pendingReviewsContainer').innerHTML = `<p>Error loading pending reviews.</p>`;
+    }
+}
+
+async function approveReview(reviewId, status) {
+    if (!confirm(`Are you sure you want to mark this review as ${status}?`)) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/reviews/owner/${reviewId}/status`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ status })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Review ${status} successfully.`);
+            loadPendingReviews();
+        } else {
+            alert(data.message || 'Error processing request.');
+        }
+    } catch (error) {
+        alert('System error occurred processing review.');
+    }
+}
+

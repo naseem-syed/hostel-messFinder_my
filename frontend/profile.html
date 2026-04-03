@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Hostel Mess Finder</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>Hostel Mess Finder</h1>
+            </div>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse Messes</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="#" id="logoutLink">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-wrapper">
+            <aside class="dashboard-sidebar">
+                <div class="user-profile">
+                    <div class="user-avatar" id="sidebarAvatar">User</div>
+                    <h3 id="userName">User Name</h3>
+                    <p id="userEmail" style="font-size: 0.85rem;">email@example.com</p>
+                </div>
+
+                <nav class="dashboard-menu">
+                    <a href="index.html" class="menu-item">
+                        <span class="icon-dot"></span> Home
+                    </a>
+                    <a href="dashboard.html" class="menu-item">
+                        <span class="icon-dot"></span> Dashboard Home
+                    </a>
+                    <a href="browse.html" class="menu-item">
+                        <span class="icon-dot"></span> Browse New Messes
+                    </a>
+                    <a href="review.html" class="menu-item" id="writeReviewSidebarLink" style="display:none;">
+                        <span class="icon-dot"></span> Write Review
+                    </a>
+                    <a href="dashboard.html?tab=reviewsTab" class="menu-item">
+                        <span class="icon-dot"></span> My Reviews
+                    </a>
+                    <a href="profile.html" class="menu-item active">
+                        <span class="icon-dot"></span> My Profile
+                    </a>
+                    <a href="#" class="menu-item">
+                        <span class="icon-dot"></span> Notifications
+                    </a>
+                    <a href="my-hostel.html" class="menu-item">
+                        <span class="icon-dot"></span> My Hostel
+                    </a>
+                </nav>
+            </aside>
+
+            <main class="dashboard-content">
+                <h2>My Profile</h2>
+                <div class="profile-card">
+                    <div class="profile-photo-container" style="text-align: center; margin-bottom: 20px;">
+                        <img id="profilePhotoImage" src="https://api.dicebear.com/7.x/initials/svg?seed=User" alt="Profile Photo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px; background-color: #f1f5f9;">
+                        <div>
+                            <label for="profilePhotoInput" class="btn btn-outline" style="cursor: pointer; font-size: 0.85rem; padding: 8px 15px;">Change Photo</label>
+                            <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;">
+                            <p style="font-size: 0.75rem; color: #666; margin-top: 8px;">Only human face photos are allowed for identity verification.</p>
+                        </div>
+                    </div>
+                    <div class="profile-info">
+                        <div class="info-item">
+                            <label>Full Name</label>
+                            <p id="profileName">Loading...</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Email Address</label>
+                            <p id="profileEmail">Loading...</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Phone Number</label>
+                            <p id="profilePhone">Not provided</p>
+                        </div>
+                        <div class="info-item">
+                            <label>College/University</label>
+                            <p id="profileCollege">Not provided</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Verification Status</label>
+                            <p id="profileVerificationStatus" style="font-weight: 700;">Loading...</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Member Since</label>
+                            <p id="memberSince">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Hostel Mess Finder. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            protectRoute();
+            const user = await getCurrentUser();
+            if (user) {
+                updateUI(user);
+                
+                // Photo upload logic
+                document.getElementById('profilePhotoInput').addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = async () => {
+                        const base64String = reader.result;
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                                method: 'PUT',
+                                headers: getAuthHeaders(),
+                                body: JSON.stringify({ photo_url: base64String })
+                            });
+                            const data = await res.json();
+                            if (res.ok) {
+                                alert('Photo updated successfully! It will be used for identity verification.');
+                                if (data.success && data.user) {
+                                    localStorage.setItem('user', JSON.stringify(data.user));
+                                    updateUI(data.user);
+                                }
+                            } else {
+                                alert(data.message || 'Failed to update photo.');
+                            }
+                        } catch (err) {
+                            alert('Error connecting to server.');
+                        }
+                    };
+                });
+            }
+        });
+
+        function updateUI(user) {
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('profileName').textContent = user.name;
+            document.getElementById('profileEmail').textContent = user.email;
+            document.getElementById('profilePhone').textContent = user.phone || 'Not provided';
+            document.getElementById('profileCollege').textContent = user.college || 'Not provided';
+            document.getElementById('memberSince').textContent = new Date(user.createdAt).toLocaleDateString();
+            
+            const statusEl = document.getElementById('profileVerificationStatus');
+            if (user.isVerified) {
+                statusEl.textContent = 'Verified';
+                statusEl.style.color = '#10b981';
+            } else if (user.joinedMessId) {
+                statusEl.textContent = 'Verification Pending';
+                statusEl.style.color = '#f59e0b';
+            } else {
+                statusEl.textContent = 'Not Joined Any Hostel';
+                statusEl.style.color = '#666';
+            }
+
+            if (user.photo_url) {
+                document.getElementById('sidebarAvatar').innerHTML = `<img src="${user.photo_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                document.getElementById('profilePhotoImage').src = user.photo_url;
+            }
+
+            if (user.joinedMessId && user.isVerified) {
+                document.getElementById('writeReviewSidebarLink').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

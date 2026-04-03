@@ -775,9 +775,9 @@
             </div>
             <ul class="nav-links" id="navLinks">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="messes.html">Browse Messes</a></li>
-                <li><a href="login.html" id="loginLink">Login</a></li>
-                <li><a href="register.html" id="registerLink">Register</a></li>
+                <li><a href="browse.html">Browse Messes</a></li>
+                <li id="loginLink"><a href="login.html">Login</a></li>
+                <li id="registerLink"><a href="register.html">Register</a></li>
 
                 <li><a href="dashboard.html" id="dashboardLink" style="display:none;">Dashboard</a></li>
                 <li><a href="#" id="logoutLink" style="display:none;">Logout</a></li>
@@ -792,7 +792,7 @@
             <span class="banner-tag">Hostel Mess Finder</span>
             <h1 class="banner-title" id="bannerMessName">Mess Details</h1>
             <p class="banner-subtitle">Honest reviews · Verified ratings · Real student experiences</p>
-            <a href="messes.html" class="banner-back-btn">← Browse All Messes</a>
+                <a href="messes.html" class="banner-back-btn">Browse All Messes</a>
         </div>
     </div>
 
@@ -814,13 +814,13 @@
             <!-- LEFT SIDE: Mess Information -->
             <div class="mess-details-left">
                 <!-- Basic Info Card -->
-                <div class="info-card">
+                <div class="info-card" id="messBasicInfoCard">
                     <h2 id="messName">Loading...</h2>
                     
                     <div class="rating-display">
                         <span class="rating-number" id="overallRatingNum">0.0</span>
                         <div>
-                            <div class="rating-stars" id="messRating">★★★★★</div>
+                            <div class="rating-stars" id="messRating">Rating: </div>
                             <div class="rating-count" id="reviewCount">0 reviews</div>
                         </div>
                     </div>
@@ -850,7 +850,7 @@
                 </div>
 
                 <!-- Ratings Breakdown Card -->
-                <div class="info-card">
+                <div class="info-card" id="messRatingsCard">
                     <h3>Detailed Ratings</h3>
                     
                     <div class="rating-breakdown-item">
@@ -871,13 +871,13 @@
                 </div>
 
                 <!-- Description Card -->
-                <div class="info-card">
+                <div class="info-card" id="messInfoCard">
                     <h3>About This Mess</h3>
                     <p id="messDescription" style="color: #1C1917; line-height: 1.8; font-size: 0.95rem; font-weight: 600; background: #FEF3C7; padding: 16px; border-radius: 10px; border-left: 5px solid #D97706; letter-spacing: 0.2px;">No description available</p>
                 </div>
 
                 <!-- Meal Schedule Card -->
-                <div class="info-card">
+                <div class="info-card" id="messScheduleCard">
                     <h3>Meal Schedule</h3>
                     <table class="info-table" id="mealScheduleTable">
                         <tr>
@@ -931,7 +931,7 @@
             <div class="mess-details-right">
                 <!-- Join Mess Card -->
                 <div class="info-card" id="joinMessContainer" style="display:none; background: linear-gradient(135deg, #28a745, #20c997); border: none; box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);">
-                    <h3 style="color: white; margin-bottom: 15px; font-size: 1.3rem;">✨ Join This Mess</h3>
+                    <h3 style="color: white; margin-bottom: 15px; font-size: 1.3rem;">Join This Mess</h3>
                     <p style="color: rgba(255,255,255,0.95); margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5;">
                         Connect directly with the hostel owner and join the community.
                     </p>
@@ -966,148 +966,7 @@
                     </div>
                 </div>
 
-                <div class="review-form-card" id="reviewFormContainer" style="display:none;">
-                    <h3>Write a Review</h3>
-                    <form id="reviewForm">
-                        <div class="form-group">
-                            <label>Overall Rating *</label>
-                            <div class="star-rating" id="mainRating">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="ratingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Food Quality *</label>
-                            <div class="star-rating" id="foodRating">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="foodRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Hygiene Rating *</label>
-                            <div class="star-rating" id="hygieneRatingForm">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="hygieneRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Staff Behavior *</label>
-                            <small>How was the staff behavior? Rate 1 (Very Rude) to 5 (Very Friendly &amp; Helpful)</small>
-                            <div class="star-rating" id="staffBehaviorRatingForm">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="staffBehaviorRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Value for Money *</label>
-                            <small>How would you rate the value for money? Rate 1 (Very Expensive) to 5 (Excellent Value)</small>
-                            <div class="star-rating" id="valueForMoneyRatingForm">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="valueForMoneyRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Dining Area Cleanliness *</label>
-                            <small>How clean is the dining area? Rate 1 (Very Dirty) to 5 (Spotless)</small>
-                            <div class="star-rating" id="diningAreaCleanlinessRatingForm">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="diningAreaCleanlinessRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Timeliness *</label>
-                            <small>Was the food served on time? Rate 1 (Very Late) to 5 (Always On Time)</small>
-                            <div class="star-rating" id="timelinessRatingForm">
-                                <span class="star" data-value="1">★</span>
-                                <span class="star" data-value="2">★</span>
-                                <span class="star" data-value="3">★</span>
-                                <span class="star" data-value="4">★</span>
-                                <span class="star" data-value="5">★</span>
-                            </div>
-                            <input type="hidden" id="timelinessRatingInput" value="0" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="quantitySelect">Food Quantity *</label>
-                            <select id="quantitySelect" required>
-                                <option value="">Select quantity...</option>
-                                <option value="limited">Limited</option>
-                                <option value="unlimited">♾️ Unlimited</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="reviewText">Your Review *</label>
-                            <textarea id="reviewText" placeholder="Share your experience..." required maxlength="1000"></textarea>
-                            <small id="charCount">0/1000 characters</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="foodImage">Upload Food Photo</label>
-                            <input type="file" id="foodImage" accept="image/*">
-                            <small>Optional - Share a photo of the food</small>
-                            <div id="imagePreviewContainer" style="margin-top: 10px; display: none;">
-                                <img id="imagePreview" style="max-width: 100%; border-radius: 8px; border: 2px solid var(--border-color);">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="voiceNote">Upload Voice Note <span style="font-weight: normal; color: #6b7280; font-size: 0.85rem;">(Optional)</span></label>
-                            <input type="file" id="voiceNote" accept="audio/*">
-                            <small>Share a short voice note</small>
-                            <div id="voicePreviewContainer" style="margin-top: 10px; display: none;">
-                                <audio id="voicePreview" controls style="width: 100%;"></audio>
-                            </div>
-                        </div>
-                        <div id="reviewErrorMessage" class="error-message" style="color: var(--danger-color); margin-bottom: 10px;"></div>
-
-                        <button type="submit" class="btn btn-success btn-lg btn-block">Submit Review</button>
-                    </form>
-                </div>
-
-                <div id="loginPrompt" style="display:none;">
-                    <div class="review-form-card" style="text-align: center; padding: 40px 25px;">
-                        <h3 style="margin-bottom: 15px;">Share Your Experience</h3>
-                        <p style="color: var(--text-light); margin-bottom: 20px;">Please login to write a review</p>
-                        <a href="login.html" class="btn btn-success btn-lg">Login Now</a>
-                    </div>
-                </div>
-
-                <div id="reviewModeNotice" style="display:none;">
-                    <div class="review-form-card" style="text-align: center; padding: 30px 25px;">
-                        <h3 style="margin-bottom: 10px;">Reviews Disabled</h3>
-                        <p style="color: var(--text-light);">You chose to search a new mess, so posting reviews is disabled here.</p>
-                    </div>
-                </div>
+                <!-- Review Form Container Removed -->
             </div>
         </div>
     </div>

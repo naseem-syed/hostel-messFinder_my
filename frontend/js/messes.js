@@ -7,47 +7,11 @@ let filteredMesses = [];
 let comparedMesses = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    setupBrowseIntentGate();
+    // No more forced popups for browsing
     await loadMesses();
     setupFilterListeners();
     loadComparisonFromStorage();
 });
-
-function setupBrowseIntentGate() {
-    const userType = localStorage.getItem('userType');
-    if (userType !== 'student') return;
-
-    const browseMode = localStorage.getItem('browseMode');
-    const modal = document.getElementById('browseIntentModal');
-    const reviewBtn = document.getElementById('chooseReviewMode');
-    const joinBtn = document.getElementById('chooseJoinMode');
-
-    if (!modal || !reviewBtn || !joinBtn) return;
-
-    const showModal = () => {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    };
-
-    const hideModal = () => {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    };
-
-    if (!browseMode) {
-        showModal();
-    }
-
-    reviewBtn.addEventListener('click', () => {
-        localStorage.setItem('browseMode', 'review');
-        hideModal();
-    });
-
-    joinBtn.addEventListener('click', () => {
-        localStorage.setItem('browseMode', 'join');
-        hideModal();
-    });
-}
 
 async function loadMesses() {
     try {
@@ -144,14 +108,14 @@ function renderMesses() {
                     <p><strong>Rs ${mess.monthlyPrice}/month</strong></p>
                     <p style="margin-top: 8px;"><strong>Owner:</strong> ${mess.ownerId?.name || 'N/A'}</p>
                     <p><strong>Contact:</strong> ${mess.ownerId?.phone || mess.phoneNumber || 'N/A'}</p>
-                    ${mess.ownerId?.email ? `<p><strong>Email:</strong> ${mess.ownerId.email}</p>` : ''}
                 </div>
                 <div class="mess-card-footer">
                     <span class="mess-rating">Quality | Hygiene | Value</span>
                 </div>
-                <div class="mess-card-actions">
-                    <button class="btn btn-small" onclick="viewMessDetails('${mess._id}')">View Details</button>
-                    <button class="btn btn-small ${isInComparison ? 'btn-danger' : 'btn-secondary'}" onclick="toggleComparison('${mess._id}')" id="compare-btn-${mess._id}">
+                <div class="mess-card-actions" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+                    <button type="button" class="btn btn-primary btn-small" onclick="viewMessDetails('${mess._id}')" style="flex: 1;">View Details</button>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="window.location.href='join.html?id=${mess._id}'" style="flex: 1;">Join</button>
+                    <button type="button" class="btn btn-small ${isInComparison ? 'btn-danger' : 'btn-outline'}" onclick="toggleComparison('${mess._id}')" id="compare-btn-${mess._id}" style="width: 100%;">
                         ${isInComparison ? 'Comparing' : 'Compare'}
                     </button>
                 </div>
@@ -166,16 +130,6 @@ function renderMesses() {
 }
 
 function viewMessDetails(messId) {
-    const userType = localStorage.getItem('userType');
-    const browseMode = localStorage.getItem('browseMode');
-    const modal = document.getElementById('browseIntentModal');
-
-    if (userType === 'student' && !browseMode && modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        return;
-    }
-
     window.location.href = `mess-details.html?id=${messId}`;
 }
 
@@ -396,5 +350,35 @@ function showNotification(message, type = 'success') {
         }
     } else {
         alert(message);
+    }
+}
+
+async function joinMess(messId) {
+    const studentId = localStorage.getItem('studentId');
+    if (!studentId) {
+        alert('Please login as a student to join a hostel');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:5000/students/join`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}` // Include token for security
+            },
+            body: JSON.stringify({ studentId, messId })
+        });
+
+        const data = await response.json();
+        alert(data.message);
+
+        if (response.ok) {
+            window.location.href = 'dashboard.html';
+        }
+    } catch (error) {
+        console.error('Error joining hostel:', error);
+        alert('Error connecting to server');
     }
 }

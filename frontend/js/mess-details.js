@@ -22,9 +22,7 @@ function setWidth(id, width) {
 
 function renderStarText(rating) {
     const safeRating = Number(rating || 0);
-    const fullStars = Math.round(safeRating);
-    const stars = '★★★★★'.split('').map((s, i) => (i < fullStars ? '★' : '☆')).join('');
-    return `${stars} ${safeRating.toFixed(1)}/5`;
+    return `Rating: ${safeRating.toFixed(1)}/5`;
 }
 
 function showDetailsError(message) {
@@ -48,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadMessDetails();
     await loadReviews();
-    setupReviewForm();
     setupJoinButton();
 });
 
@@ -162,6 +159,7 @@ async function loadReviews() {
 
             if (reviews.length === 0) {
                 container.innerHTML = '';
+                noReviews.innerHTML = '<p>Be the first to review this hostel!</p>';
                 noReviews.style.display = 'block';
             } else {
                 noReviews.style.display = 'none';
@@ -179,6 +177,16 @@ function createReviewHTML(review) {
     const voiceNote = review.voiceNote ? `
         <audio controls src="${review.voiceNote}" style="width: 100%; margin-top: 10px;"></audio>
     ` : '';
+    
+    // Mask email: student@example.com -> s******@example.com
+    const maskEmail = (email) => {
+        if (!email) return '';
+        const [user, domain] = email.split('@');
+        return user.charAt(0) + '*'.repeat(user.length - 1) + '@' + domain;
+    };
+
+    const userPhoto = review.userId.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(review.userId.name)}`;
+
     const categoryRatings = `
         <div class="review-subratings" style="margin: 10px 0; color: #5b6470; font-size: 0.92rem; line-height: 1.55;">
             <div>Staff Behavior: <strong>${review.staffBehaviorRating || '-'}/5</strong></div>
@@ -190,14 +198,18 @@ function createReviewHTML(review) {
     
     return `
         <div class="review-item">
-            <div class="review-header">
-                <div>
-                    <span class="review-user">${review.userId.name}</span>
-                    <span class="verified-badge">Verified Student</span>
+            <div class="review-header" style="display: flex; align-items: center; gap: 15px;">
+                <img src="${userPhoto}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="review-user" style="font-weight: 700;">${review.userId.name}</span>
+                        <span class="verified-badge" style="background: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">Verified Student</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">${maskEmail(review.userId.email)}</div>
                 </div>
                 <span class="review-date">${new Date(review.createdAt).toLocaleDateString()}</span>
             </div>
-            <div class="review-rating">★ ${review.rating}/5 ${quantity}</div>
+            <div class="review-rating" style="margin-top: 10px;">Rating: ${review.rating}/5 ${quantity}</div>
             ${categoryRatings}
             <div class="review-text">${review.review}</div>
             ${foodImage}
@@ -212,247 +224,7 @@ function createReviewHTML(review) {
     `;
 }
 
-function setupReviewForm() {
-    const token = localStorage.getItem('token');
-    const formContainer = document.getElementById('reviewFormContainer');
-    const loginPrompt = document.getElementById('loginPrompt');
-    const modeNotice = document.getElementById('reviewModeNotice');
-    const browseMode = getBrowseMode();
-
-    if (browseMode === 'join') {
-        if (formContainer) formContainer.style.display = 'none';
-        if (loginPrompt) loginPrompt.style.display = 'none';
-        if (modeNotice) modeNotice.style.display = 'block';
-        return;
-    } else if (modeNotice) {
-        modeNotice.style.display = 'none';
-    }
-
-    if (token) {
-        if (formContainer) formContainer.style.display = 'block';
-        if (loginPrompt) loginPrompt.style.display = 'none';
-        setupStarRatings();
-    } else {
-        if (formContainer) formContainer.style.display = 'none';
-        if (loginPrompt) loginPrompt.style.display = 'block';
-    }
-
-    const form = document.getElementById('reviewForm');
-    if (form) {
-        form.addEventListener('submit', submitReview);
-    }
-
-    const reviewText = document.getElementById('reviewText');
-    if (reviewText) {
-        reviewText.addEventListener('input', (e) => {
-            document.getElementById('charCount').textContent = `${e.target.value.length}/1000 characters`;
-        });
-    }
-
-    // Add image preview functionality
-    const foodImageInput = document.getElementById('foodImage');
-    if (foodImageInput) {
-        foodImageInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const preview = document.getElementById('imagePreview');
-                    const container = document.getElementById('imagePreviewContainer');
-                    preview.src = event.target.result;
-                    container.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    const voiceInput = document.getElementById('voiceNote');
-    if (voiceInput) {
-        voiceInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const preview = document.getElementById('voicePreview');
-                    const container = document.getElementById('voicePreviewContainer');
-                    preview.src = event.target.result;
-                    container.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-}
-
-function setupStarRatings() {
-    const ratingGroups = [
-        { containerId: 'mainRating', inputId: 'ratingInput' },
-        { containerId: 'foodRating', inputId: 'foodRatingInput' },
-        { containerId: 'hygieneRatingForm', inputId: 'hygieneRatingInput' },
-        { containerId: 'staffBehaviorRatingForm', inputId: 'staffBehaviorRatingInput' },
-        { containerId: 'valueForMoneyRatingForm', inputId: 'valueForMoneyRatingInput' },
-        { containerId: 'diningAreaCleanlinessRatingForm', inputId: 'diningAreaCleanlinessRatingInput' },
-        { containerId: 'timelinessRatingForm', inputId: 'timelinessRatingInput' }
-    ];
-
-    ratingGroups.forEach(group => {
-        const container = document.getElementById(group.containerId);
-        if (!container) return;
-
-        const stars = container.querySelectorAll('.star');
-        const inputId = group.inputId;
-
-        stars.forEach(star => {
-            star.addEventListener('click', () => {
-                const value = star.dataset.value;
-                document.getElementById(inputId).value = value;
-
-                stars.forEach(s => {
-                    s.classList.toggle('active', s.dataset.value <= value);
-                });
-            });
-
-            star.addEventListener('mouseover', () => {
-                const value = star.dataset.value;
-                stars.forEach(s => {
-                    s.style.color = s.dataset.value <= value ? '#FFD700' : '#ddd';
-                });
-            });
-        });
-
-        container.addEventListener('mouseout', () => {
-            const currentValue = document.getElementById(inputId).value;
-            stars.forEach(s => {
-                s.style.color = s.dataset.value <= currentValue ? '#FFD700' : '#ddd';
-            });
-        });
-    });
-}
-
-async function submitReview(e) {
-    e.preventDefault();
-
-    if (getBrowseMode() === 'join') {
-        document.getElementById('reviewErrorMessage').textContent = 'Reviews are disabled in search mode.';
-        return;
-    }
-
-    const rating = parseInt(document.getElementById('ratingInput').value);
-    const hygieneRating = parseInt(document.getElementById('hygieneRatingInput').value);
-    const foodQualityRating = parseInt(document.getElementById('foodRatingInput').value);
-    const staffBehaviorRating = parseInt(document.getElementById('staffBehaviorRatingInput').value);
-    const valueForMoneyRating = parseInt(document.getElementById('valueForMoneyRatingInput').value);
-    const diningAreaCleanlinessRating = parseInt(document.getElementById('diningAreaCleanlinessRatingInput').value);
-    const timelinessRating = parseInt(document.getElementById('timelinessRatingInput').value);
-    const review = document.getElementById('reviewText').value.trim();
-    const quantity = document.getElementById('quantitySelect').value;
-    const foodImageFile = document.getElementById('foodImage').files[0];
-    const voiceFile = document.getElementById('voiceNote').files[0];
-
-    if (!rating || !review || !quantity || !staffBehaviorRating || !valueForMoneyRating || !diningAreaCleanlinessRating || !timelinessRating) {
-        document.getElementById('reviewErrorMessage').textContent = 'Please fill all required ratings, review text, and quantity';
-        return;
-    }
-
-    let foodImage = null;
-    if (foodImageFile) {
-        // Convert image to base64
-        foodImage = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(foodImageFile);
-        });
-    }
-
-    let voiceNote = null;
-    if (voiceFile) {
-        voiceNote = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(voiceFile);
-        });
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/reviews`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                messId: currentMessId,
-                rating,
-                hygieneRating: hygieneRating || rating,
-                foodQualityRating: foodQualityRating || rating,
-                staffBehaviorRating,
-                valueForMoneyRating,
-                diningAreaCleanlinessRating,
-                timelinessRating,
-                review,
-                quantity,
-                foodImage,
-                voiceNote
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            document.getElementById('reviewForm').reset();
-            document.getElementById('ratingInput').value = '0';
-            document.getElementById('hygieneRatingInput').value = '0';
-            document.getElementById('foodRatingInput').value = '0';
-            document.getElementById('staffBehaviorRatingInput').value = '0';
-            document.getElementById('valueForMoneyRatingInput').value = '0';
-            document.getElementById('diningAreaCleanlinessRatingInput').value = '0';
-            document.getElementById('timelinessRatingInput').value = '0';
-            document.getElementById('quantitySelect').value = '';
-            document.getElementById('reviewErrorMessage').textContent = '';
-            document.getElementById('imagePreviewContainer').style.display = 'none';
-            document.getElementById('voicePreviewContainer').style.display = 'none';
-            
-            // Reset star display
-            document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
-            
-            await loadReviews();
-            await loadMessDetails();
-        } else {
-            document.getElementById('reviewErrorMessage').textContent = data.message || 'Failed to submit review';
-        }
-    } catch (error) {
-        document.getElementById('reviewErrorMessage').textContent = 'Error submitting review: ' + error.message;
-    }
-}
-
-async function deleteReview(reviewId) {
-    if (!confirm('Are you sure you want to delete this review?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            await loadReviews();
-            await loadMessDetails();
-        } else {
-            alert('Failed to delete review');
-        }
-    } catch (error) {
-        console.error('Error deleting review:', error);
-    }
-}
-
-function editReview(reviewId) {
-    alert('Edit functionality coming soon!');
-}
-// ===================================
-// JOIN MESS FUNCTIONALITY
-// ===================================
+// Join mess functionality removed from here if it was redundant, but I'll keep it as requested for the flow.
 
 async function setupJoinButton() {
     const token = localStorage.getItem('token');
@@ -462,13 +234,6 @@ async function setupJoinButton() {
     const joinButton = document.getElementById('joinButton');
     const leaveButton = document.getElementById('leaveButton');
     const ownerDetailsCard = document.getElementById('ownerDetailsCard');
-    const browseMode = getBrowseMode();
-
-    if (browseMode === 'review') {
-        if (joinContainer) joinContainer.style.display = 'none';
-        if (ownerDetailsCard) ownerDetailsCard.style.display = 'none';
-        return;
-    }
 
     // Only show join button for authenticated students
     if (token && userType === 'student') {
@@ -481,14 +246,27 @@ async function setupJoinButton() {
             ownerDetailsCard.style.display = 'block';
             leaveButton.addEventListener('click', leaveMess);
             await loadAndDisplayOwnerDetails();
+        } else if (user.joinedMessId) {
+            // Student is already enrolled in ANOTHER hostel
+            joinButton.style.display = 'block';
+            joinButton.disabled = true;
+            joinButton.textContent = 'Already Enrolled in a Hostel';
+            joinButton.style.backgroundColor = '#ccc';
+            joinButton.style.cursor = 'not-allowed';
+            
+            const msg = document.createElement('p');
+            msg.textContent = "You are already enrolled in a hostel. Leave your current hostel to join this one.";
+            msg.style.color = 'red';
+            msg.style.fontSize = '0.85rem';
+            msg.style.marginTop = '10px';
+            joinContainer.appendChild(msg);
+            
+            leaveButton.style.display = 'none';
+            ownerDetailsCard.style.display = 'none';
         } else {
             joinButton.style.display = 'block';
             leaveButton.style.display = 'none';
             ownerDetailsCard.style.display = 'none';
-            // In search mode, make the CTA explicit: view owner details, then confirm.
-            if (browseMode === 'join') {
-                joinButton.textContent = 'View Owner Details & Confirm';
-            }
             joinButton.addEventListener('click', joinMessDirect);
         }
     } else {
@@ -521,42 +299,32 @@ async function loadAndDisplayOwnerDetails() {
 }
 
 async function joinMessDirect() {
+    if (!isAuthenticated()) {
+        window.location.href = 'login.html';
+        return;
+    }
+
     try {
-        const response = await fetch(`${API_BASE_URL}/messes/${currentMessId}`, {
+        const response = await fetch(`${API_BASE_URL}/messes/${currentMessId}/join`, {
+            method: 'POST',
             headers: getAuthHeaders()
         });
 
+        const data = await response.json();
+
         if (response.ok) {
-            const data = await response.json();
-            const mess = data.data;
-            
-            if (mess.ownerId) {
-                const owner = mess.ownerId;
-                
-                // Store owner details for confirmation
-                currentOwnerDetails = {
-                    messId: currentMessId,
-                    messName: mess.name,
-                    ownerId: owner._id || owner,
-                    ownerName: owner.name || 'Not Available',
-                    ownerEmail: owner.email || 'Not Available',
-                    ownerPhone: owner.phone || 'Not Available'
-                };
-
-                // Populate confirmation modal
-                document.getElementById('confirmOwnerName').textContent = currentOwnerDetails.ownerName;
-                document.getElementById('confirmOwnerEmail').textContent = currentOwnerDetails.ownerEmail;
-                document.getElementById('confirmOwnerPhone').textContent = currentOwnerDetails.ownerPhone;
-                document.getElementById('confirmMessName').textContent = currentOwnerDetails.messName;
-
-                // Show confirmation modal
-                const modal = document.getElementById('joinConfirmationModal');
-                modal.style.display = 'flex';
+            alert(data.message || 'Successfully joined!');
+            // Update local user data
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
             }
+            window.location.href = 'browse.html';
+        } else {
+            alert(data.message || 'Failed to join mess');
         }
     } catch (error) {
-        console.error('Error loading owner details:', error);
-        alert('Error loading owner details');
+        console.error('Error joining mess:', error);
+        alert('Error connecting to server');
     }
 }
 
@@ -575,12 +343,17 @@ async function confirmJoinNow() {
         confirmBtn.disabled = true;
 
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/messes/${currentMessId}/join`, {
+        const user = await getCurrentUser();
+        const response = await fetch(`${API_BASE_URL}/students/join`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            }
+            },
+            body: JSON.stringify({
+                messId: currentMessId,
+                studentId: user._id
+            })
         });
 
         const data = await response.json();
@@ -642,8 +415,7 @@ async function leaveMess() {
         leaveBtn.textContent = 'Leaving...';
         leaveBtn.disabled = true;
 
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/messes/${currentMessId}/leave`, {
+        const response = await fetch(`${API_BASE_URL}/students/leave`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

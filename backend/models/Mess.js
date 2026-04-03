@@ -65,6 +65,42 @@ const messSchema = new mongoose.Schema({
     max: 5,
     default: 0
   },
+  staffBehaviorRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  valueForMoneyRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  diningAreaCleanlinessRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  timelinessRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  varietyOfMenuRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  waitingTimeRating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
   overallRating: {
     type: Number,
     min: 0,

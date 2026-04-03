@@ -55,7 +55,7 @@ exports.getAllMesses = async (req, res) => {
 exports.getOwnerMess = async (req, res) => {
   try {
     console.log('getOwnerMess - Looking for mess with ownerId:', req.userId);
-    const mess = await Mess.findOne({ ownerId: req.userId }).populate('ownerId', 'name email phone');
+    const mess = await Mess.findOne({ ownerId: req.userId }).populate('ownerId', 'name email phone').populate('joinedStudents', 'name email phone photo_url');
     
     if (!mess) {
       console.warn('getOwnerMess - No mess found for owner:', req.userId);
@@ -363,81 +363,29 @@ exports.compareMesses = async (req, res) => {
   }
 };
 
-// @desc    Join a mess as a student
-// @route   POST /api/messes/:id/join
+// @desc    Join a mess
+// @route   POST /api/messes/join
 // @access  Private (Student only)
 exports.joinMess = async (req, res) => {
   try {
-    const messId = req.params.id;
     const studentId = req.userId;
+    const { messId } = req.body;
 
-    // Check if mess exists and populate owner
-    const mess = await Mess.findById(messId).populate('ownerId', 'name email phone');
-    if (!mess) {
-      return res.status(404).json({
-        success: false,
-        message: 'Mess not found'
-      });
+    if (!messId) {
+      return res.status(400).json({ success: false, message: 'Mess ID is required' });
     }
 
-    // Check if student already joined a mess
     const User = require('../models/User');
     const student = await User.findById(studentId);
-    if (student.joinedMessId && student.joinedMessId.toString() !== messId) {
+
+    // 1. Logic: One student -> one hostel ONLY
+    if (student.joinedMessId) {
       return res.status(400).json({
         success: false,
-        message: 'You have already joined another mess. Please leave it first.'
+        message: 'You have already joined a hostel. Leave it before joining another.'
       });
     }
 
-    // Check if student already joined this mess
-    if (mess.joinedStudents.includes(studentId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already joined this mess'
-      });
-    }
-
-    // Add student to joined students list
-    mess.joinedStudents.push(studentId);
-    await mess.save();
-
-    // Update student's joinedMessId
-    student.joinedMessId = messId;
-    await student.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Successfully joined the mess',
-      data: {
-        messId: mess._id,
-        messName: mess.name,
-        ownerDetails: {
-          id: mess.ownerId._id,
-          name: mess.ownerId.name,
-          email: mess.ownerId.email,
-          phone: mess.ownerId.phone
-        }
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error joining mess',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Leave a mess
-// @route   POST /api/messes/:id/leave
-// @access  Private (Student only)
-exports.leaveMess = async (req, res) => {
-  try {
-    const messId = req.params.id;
-    const studentId = req.userId;
-
-    // Check if mess exists
     const mess = await Mess.findById(messId);
     if (!mess) {
       return res.status(404).json({
@@ -446,22 +394,67 @@ exports.leaveMess = async (req, res) => {
       });
     }
 
-    // Check if student is part of this mess
+    // 2. Assign: student.messId = messId, joinedVia = "browse"
+    student.joinedMessId = messId;
+    student.joinedVia = 'browse';
+    student.isVerified = false; // All browse joins start as unverified
+    await student.save();
+
+    // 3. Add student to mess's joined list
     if (!mess.joinedStudents.includes(studentId)) {
+      mess.joinedStudents.push(studentId);
+      await mess.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully joined hostel',
+      user: {
+        id: student._id,
+        name: student.name,
+        joinedMessId: student.joinedMessId,
+        joinedVia: student.joinedVia
+      }
+    });
+  } catch (error) {
+    console.error('joinMess error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error joining mess',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Leave current mess
+// @route   POST /api/messes/leave
+// @access  Private (Student only)
+exports.leaveMess = async (req, res) => {
+  try {
+    const studentId = req.userId;
+
+    const User = require('../models/User');
+    const student = await User.findById(studentId);
+    const messId = student.joinedMessId;
+
+    if (!messId) {
       return res.status(400).json({
         success: false,
-        message: 'You are not a member of this mess'
+        message: 'You are not in any hostel'
       });
     }
 
-    // Remove student from joined students list
-    mess.joinedStudents = mess.joinedStudents.filter(id => id.toString() !== studentId.toString());
-    await mess.save();
+    // 1. Clear from mess.joinedStudents
+    const mess = await Mess.findById(messId);
+    if (mess) {
+      mess.joinedStudents = mess.joinedStudents.filter(id => id.toString() !== studentId.toString());
+      await mess.save();
+    }
 
-    // Clear student's joinedMessId
-    const User = require('../models/User');
-    const student = await User.findById(studentId);
+    // 2. Clear student's mess data
     student.joinedMessId = null;
+    student.joinedVia = null;
+    student.isVerified = false;
     await student.save();
 
     res.status(200).json({
@@ -469,10 +462,248 @@ exports.leaveMess = async (req, res) => {
       message: 'Successfully left the mess'
     });
   } catch (error) {
+    console.error('leaveMess error:', error);
     res.status(500).json({
       success: false,
       message: 'Error leaving mess',
       error: error.message
     });
+  }
+};
+
+// @desc    Get all students joined to a mess
+// @route   GET /api/messes/:id/joined-students
+// @access  Private (Owner only)
+exports.getJoinedStudents = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    const User = require('../models/User');
+    
+    // Find all students linking to this messId
+    const students = await User.find({ joinedMessId: messId }).select('name email phone photo_url joinedVia isVerified');
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      data: students
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching joined students',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Add verified student to a hostel
+// @route   POST /api/messes/:id/students
+// @access  Private (Owner only)
+exports.addHostelStudent = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    const { student_email, phone, photo_url } = req.body;
+
+    const mess = await Mess.findById(messId);
+    if (!mess || mess.ownerId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or mess not found' });
+    }
+
+    const HostelStudent = require('../models/HostelStudent');
+    const User = require('../models/User');
+    
+    // Check if student exists as a registered user
+    const registeredUser = await User.findOne({ email: student_email.toLowerCase() });
+    
+    // If user exists, we MUST use their official phone number or at least ensure it matches
+    // This prevents the owner from entering a "wrong" phone number for an existing user
+    if (registeredUser && registeredUser.phone !== phone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Phone number mismatch for ${student_email}. This student is registered with phone ending in ...${registeredUser.phone.slice(-4)}. Please use their official registered number.`
+      });
+    }
+
+    // Check if already added to this hostel (email or phone)
+    const existingEmail = await HostelStudent.findOne({ hostel_id: messId, student_email: student_email.toLowerCase() });
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'Student with this email is already verified for this hostel' });
+    }
+
+    const existingPhone = await HostelStudent.findOne({ hostel_id: messId, phone });
+    if (existingPhone) {
+      return res.status(400).json({ success: false, message: 'Student with this phone number is already verified for this hostel' });
+    }
+
+    // AI Face Detection Validation
+    if (photo_url) {
+      const aiService = require('../services/aiService');
+      const faceResult = await aiService.detectHumanFace(photo_url);
+      if (!faceResult.hasFace) {
+        return res.status(400).json({
+          success: false,
+          message: faceResult.message
+        });
+      }
+    }
+
+    const student = await HostelStudent.create({
+      hostel_id: messId,
+      student_email: student_email.toLowerCase(),
+      phone,
+      photo_url
+    });
+
+    // AUTO-LINK REGISTERED USER TO HOSTEL
+    if (registeredUser) {
+      registeredUser.joinedMessId = messId;
+      registeredUser.joinedVia = 'owner';
+      registeredUser.isVerified = true;
+      await registeredUser.save();
+
+      // Also add to Mess joinedStudents list if not already there
+      if (!mess.joinedStudents.includes(registeredUser._id)) {
+        mess.joinedStudents.push(registeredUser._id);
+        await mess.save();
+      }
+    }
+
+    res.status(201).json({ success: true, data: student });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error adding student', error: error.message });
+  }
+};
+
+// @desc    Delete verified student
+// @route   DELETE /api/messes/:id/students/:studentEmail
+// @access  Private (Owner only)
+exports.deleteHostelStudent = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    const studentEmail = req.params.studentEmail.toLowerCase();
+
+    const mess = await Mess.findById(messId);
+    if (!mess || mess.ownerId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or mess not found' });
+    }
+
+    const HostelStudent = require('../models/HostelStudent');
+    const User = require('../models/User');
+
+    // Remove from verified list
+    await HostelStudent.findOneAndDelete({ hostel_id: messId, student_email: studentEmail });
+
+    // Unlink registered user
+    const registeredUser = await User.findOne({ email: studentEmail });
+    if (registeredUser && registeredUser.joinedMessId?.toString() === messId) {
+      registeredUser.joinedMessId = null;
+      registeredUser.isVerified = false;
+      await registeredUser.save();
+
+      // Also remove from Mess joinedStudents list
+      mess.joinedStudents = mess.joinedStudents.filter(id => id.toString() !== registeredUser._id.toString());
+      await mess.save();
+    }
+
+    res.status(200).json({ success: true, message: 'Student removed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting student', error: error.message });
+  }
+};
+
+// @desc    Get verified student details
+// @route   GET /api/messes/:id/students/:studentEmail
+// @access  Private (Owner only)
+exports.getHostelStudentDetails = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    const studentEmail = req.params.studentEmail.toLowerCase();
+
+    const mess = await Mess.findById(messId);
+    if (!mess || mess.ownerId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or mess not found' });
+    }
+
+    const HostelStudent = require('../models/HostelStudent');
+    const User = require('../models/User');
+
+    const verifiedData = await HostelStudent.findOne({ hostel_id: messId, student_email: studentEmail });
+    const registeredData = await User.findOne({ email: studentEmail });
+
+    if (!verifiedData) {
+      return res.status(404).json({ success: false, message: 'Student not found in verified list' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        email: verifiedData.student_email,
+        phone: verifiedData.phone,
+        photo_url: verifiedData.photo_url,
+        dateVerified: verifiedData.createdAt,
+        isRegistered: !!registeredData,
+        registeredName: registeredData ? registeredData.name : 'Not registered yet',
+        hostelName: mess.name
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching student details', error: error.message });
+  }
+};
+
+// @desc    Get verified students for a hostel
+// @route   GET /api/messes/:id/students
+// @access  Private (Owner only)
+exports.getHostelStudents = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    const mess = await Mess.findById(messId);
+    
+    if (!mess || mess.ownerId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or mess not found' });
+    }
+
+    const HostelStudent = require('../models/HostelStudent');
+    const User = require('../models/User');
+
+    const students = await HostelStudent.find({ hostel_id: messId }).sort({ createdAt: -1 });
+    
+    // Map to include names if registered
+    const studentsWithNames = await Promise.all(students.map(async (s) => {
+      const user = await User.findOne({ email: s.student_email });
+      return {
+        ...s._doc,
+        name: user ? user.name : 'Not registered yet'
+      };
+    }));
+
+    res.status(200).json({ success: true, count: studentsWithNames.length, data: studentsWithNames });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching students', error: error.message });
+  }
+};
+
+// @desc    Get pending reviews for owner
+// @route   GET /api/messes/:id/reviews/pending
+// @access  Private (Owner only)
+exports.getPendingReviews = async (req, res) => {
+  try {
+    const messId = req.params.id;
+    
+    const mess = await Mess.findById(messId);
+    if (!mess || mess.ownerId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized or mess not found' });
+    }
+
+    const Review = require('../models/Review');
+    
+    // FETCH PENDING REVIEWS: populate user but EXCLUDE review string and ratings
+    const pendingReviews = await Review.find({ messId, status: 'pending' })
+      .select('-review -rating -hygieneRating -foodQualityRating -staffBehaviorRating -valueForMoneyRating -diningAreaCleanlinessRating -timelinessRating')
+      .populate('userId', 'name email photo_url');
+
+    res.status(200).json({ success: true, count: pendingReviews.length, data: pendingReviews });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching pending reviews', error: error.message });
   }
 };

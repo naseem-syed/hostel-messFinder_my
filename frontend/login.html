@@ -361,11 +361,14 @@
 <body>
     <nav class="top-nav">
         <a class="brand" href="index.html">Hostel <span>Mess Finder</span></a>
-        <div class="nav-links" id="navLinks">
-            <a href="index.html">Home</a>
-            <a href="messes.html">Browse</a>
-            <a href="register.html">Register</a>
-        </div>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="browse.html">Browse</a></li>
+            <li id="loginLink"><a href="login.html" class="active">Login</a></li>
+            <li id="registerLink"><a href="register.html">Register</a></li>
+            <li id="dashboardLink" style="display:none;"><a href="#">Dashboard</a></li>
+            <li id="logoutLink" style="display:none;"><a href="#">Logout</a></li>
+        </ul>
     </nav>
 
     <main class="auth-stage">
@@ -451,6 +454,8 @@
 
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
+                // Fix for studentId mismatch (server uses 'id', frontend was looking for '_id')
+                localStorage.setItem('studentId', data.user?.id || data.user?._id); 
                 localStorage.setItem('userType', userType);
                 localStorage.removeItem('adminToken');
                 localStorage.removeItem('admin');
@@ -463,6 +468,18 @@
                 }, 800);
             } catch (error) {
                 errorDiv.textContent = 'Error during login: ' + error.message;
+            }
+        });
+    </script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Detection for file:// protocol usage
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.protocol === 'file:') {
+                const banner = document.createElement('div');
+                banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;text-align:center;padding:10px;z-index:9999;font-weight:bold;';
+                banner.innerHTML = 'ALERT: You are using File Mode. Website features will NOT work. Click here to open in Web Mode: <a href="http://localhost:5000" style="color:yellow;text-decoration:underline;">http://localhost:5000</a>';
+                document.body.prepend(banner);
             }
         });
     </script>

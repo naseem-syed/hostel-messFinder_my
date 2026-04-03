@@ -6,6 +6,29 @@
     <title>Dashboard - Hostel Mess Finder</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -15,9 +38,11 @@
             </div>
             <ul class="nav-links" id="navLinks">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="messes.html">Browse Messes</a></li>
-                <li><a href="dashboard.html" class="active">Dashboard</a></li>
-                <li><a href="#" id="logoutLink">Logout</a></li>
+                <li><a href="browse.html">Browse Messes</a></li>
+                <li id="loginLink" style="display:none;"><a href="login.html">Login</a></li>
+                <li id="registerLink" style="display:none;"><a href="register.html">Register</a></li>
+                <li id="dashboardLink"><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li id="logoutLink"><a href="#">Logout</a></li>
             </ul>
         </div>
     </nav>
@@ -26,127 +51,101 @@
         <div class="dashboard-wrapper">
             <aside class="dashboard-sidebar">
                 <div class="user-profile">
-                    <div class="user-avatar">User</div>
+                    <div class="user-avatar" id="sidebarAvatar">User</div>
                     <h3 id="userName">User Name</h3>
                     <p id="userCollege">College Name</p>
                     <p id="userEmail" style="font-size: 0.85rem;">email@example.com</p>
                 </div>
 
                 <nav class="dashboard-menu">
-                    <a href="#" class="menu-item active" data-tab="profile">
-                        <span></span> Profile
+                    <a href="index.html" class="menu-item">
+                        <span class="icon-dot"></span> Home
                     </a>
-                    <a href="#" class="menu-item" data-tab="reviews">
-                        <span>*</span> My Reviews
+                    <a href="#" class="menu-item active" onclick="switchTab('dashboardTab')">
+                        <span class="icon-dot"></span> Dashboard Home
                     </a>
-                    <a href="#" class="menu-item" data-tab="settings">
-                        <span></span> Settings
+                    <a href="browse.html" class="menu-item">
+                        <span class="icon-dot"></span> Browse New Messes
+                    </a>
+                    <a href="review.html" class="menu-item">
+                        <span class="icon-dot"></span> Write Review
+                    </a>
+                    <a href="#" class="menu-item" onclick="switchTab('reviewsTab')">
+                        <span class="icon-dot"></span> My Reviews
+                    </a>
+                    <a href="profile.html" class="menu-item">
+                        <span class="icon-dot"></span> My Profile
+                    </a>
+                    <a href="#" class="menu-item">
+                        <span class="icon-dot"></span> Notifications
+                    </a>
+                    <a href="my-hostel.html" class="menu-item">
+                        <span class="icon-dot"></span> My Hostel
                     </a>
                 </nav>
             </aside>
 
             <main class="dashboard-content">
-                <div id="profileTab" class="tab-content active">
-                    <h2>My Profile</h2>
-                    <div class="profile-card">
-                        <div class="profile-info">
-                            <div class="info-item">
-                                <label>Full Name</label>
-                                <p id="profileName">Loading...</p>
+                <div id="startTab" class="tab-content active">
+                    <h2>Welcome to Your Dashboard</h2>
+                    <p style="margin-bottom: 30px; color: #666;">Choose an action below to get started with your hostel mess experience.</p>
+                    
+                    <!-- Status Section -->
+                    <div id="statusSection" class="card" style="margin-bottom: 30px; border-left: 5px solid #10b981; display: none;">
+                        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+                            <div>
+                                <h4 id="statusTitle" style="margin-bottom: 5px;">You are verified!</h4>
+                                <p id="statusText" style="font-size: 0.9rem; color: #666;">You can now submit a review for your current hostel.</p>
                             </div>
-                            <div class="info-item">
-                                <label>Email Address</label>
-                                <p id="profileEmail">Loading...</p>
+                            <div id="statusAction">
+                                <a href="review.html" class="btn btn-primary">Give Review Now</a>
                             </div>
-                            <div class="info-item">
-                                <label>Phone Number</label>
-                                <p id="profilePhone">Not provided</p>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                        <div class="card" style="cursor: pointer; transition: transform 0.3s;" onclick="window.location.href='review.html'">
+                            <div class="card-body" style="text-align: center; padding: 40px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 15px; font-weight: 700;">WRITE</div>
+                                <h3 style="margin-bottom: 10px;">Write Review</h3>
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Share your experience with your current hostel mess.</p>
+                                <button class="btn btn-primary" style="width: 100%;">Give Review</button>
                             </div>
-                            <div class="info-item">
-                                <label>College/University</label>
-                                <p id="profileCollege">Not provided</p>
+                        </div>
+                        
+                        <div class="card" style="cursor: pointer; transition: transform 0.3s;" onclick="window.location.href='browse.html'">
+                            <div class="card-body" style="text-align: center; padding: 40px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 15px; font-weight: 700;">SEARCH</div>
+                                <h3 style="margin-bottom: 10px;">Browse New Messes</h3>
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Explore and compare other hostel messes in your area.</p>
+                                <button class="btn btn-outline" style="width: 100%;">Explore Messes</button>
                             </div>
-                            <div class="info-item">
-                                <label>Member Since</label>
-                                <p id="memberSince">Loading...</p>
-                            </div>
-                            <div class="info-item">
-                                <label>Account Status</label>
-                                <p style="color: var(--success); font-weight: 600;">Active</p>
+                        </div>
+
+                        <div class="card" style="cursor: pointer; transition: transform 0.3s;" onclick="switchTab('reviewsTab')">
+                            <div class="card-body" style="text-align: center; padding: 40px;">
+                                <div style="font-size: 1.5rem; margin-bottom: 15px; font-weight: 700;">REVIEWS</div>
+                                <h3 style="margin-bottom: 10px;">My Reviews</h3>
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">View and manage reviews you've submitted.</p>
+                                <button class="btn btn-secondary" style="width: 100%;">View Reviews</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="reviewsTab" class="tab-content">
-                    <h2>My Reviews</h2>
-                    <div class="stats-cards">
-                        <div class="stat-card">
-                            <h4>Total Reviews</h4>
-                            <p id="totalReviewsCount">0</p>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Average Rating</h4>
-                            <p id="avgRating">0.0</p>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Most Reviewed</h4>
-                            <p id="mostReviewedMess">None</p>
-                        </div>
+                <div id="reviewsTab" class="tab-content" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <h2>My Reviews</h2>
+                        <button class="btn btn-outline btn-small" onclick="switchTab('startTab')">Back to Dashboard</button>
                     </div>
-
-                    <div id="userReviewsContainer" class="reviews-list"></div>
-
-                    <div id="noUserReviews" style="display:none;" class="no-content">
-                        <p>You have not submitted any reviews yet. Visit the messes page to share your experience.</p>
-                        <a href="messes.html" class="btn btn-primary">Browse Messes</a>
-                    </div>
-                </div>
-
-                <div id="settingsTab" class="tab-content">
-                    <h2>Account Settings</h2>
-                    <div class="card">
-                        <div class="card-body">
-                            <h3>Preferences</h3>
-                            <p>Manage your account preferences and notifications here.</p>
-                            <div style="margin-top: 24px;">
-                                <h4>Danger Zone</h4>
-                                <button class="btn btn-outline" onclick="if(confirm('Are you sure? This action cannot be undone.')) { logout(); }">
-                                    Logout
-                                </button>
-                            </div>
+                    
+                    <div id="myReviewsList" class="reviews-list">
+                        <div class="no-content">
+                            <p>Loading your reviews...</p>
                         </div>
                     </div>
                 </div>
             </main>
-        </div>
-    </div>
-
-    <div id="editReviewModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Edit Review</h2>
-            <form id="editReviewForm">
-                <div class="form-group">
-                    <label>Rating *</label>
-                    <div class="star-rating" id="editMainRating">
-                        <span class="star" data-value="1">★</span>
-                        <span class="star" data-value="2">★</span>
-                        <span class="star" data-value="3">★</span>
-                        <span class="star" data-value="4">★</span>
-                        <span class="star" data-value="5">★</span>
-                    </div>
-                    <input type="hidden" id="editRatingInput" value="0">
-                </div>
-
-                <div class="form-group">
-                    <label for="editReviewText">Review *</label>
-                    <textarea id="editReviewText" required maxlength="1000"></textarea>
-                </div>
-
-                <div id="editErrorMessage" class="error-message"></div>
-                <button type="submit" class="btn btn-primary">Update Review</button>
-            </form>
         </div>
     </div>
 
@@ -157,6 +156,8 @@
     </footer>
 
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>
+

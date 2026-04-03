@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Your Stay - Hostel Mess Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --brand-primary: #ff7a1a;
+            --brand-secondary: #ff3d3d;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --muted-text: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 24px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(255, 122, 26, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 61, 61, 0.12), transparent 45%);
+            z-index: -1;
+        }
+
+        .join-wrapper {
+            width: min(500px, 100%);
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .join-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .icon-box {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ffa047, #ff4b4b);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 20px rgba(255, 122, 26, 0.3);
+        }
+
+        .icon-box svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--muted-text);
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+        }
+
+        .mess-preview {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .mess-preview h4 {
+            margin: 0 0 4px;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .mess-preview p {
+            margin: 0;
+            color: var(--brand-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .confirm-btn {
+            width: 100%;
+            height: 56px;
+            background: linear-gradient(to right, #ff7a1a, #ff3d3d);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-weight: 700;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(255, 61, 61, 0.4);
+        }
+
+        .cancel-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--muted-text);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #loadingOverlay {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="join-wrapper">
+        <div class="join-card">
+            <div id="contentStage">
+                <div class="icon-box">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                </div>
+                <h1>Ready to Join?</h1>
+                <p class="subtitle">Complete your enrollment process to start enjoying quality home-cooked meals every day.</p>
+                
+                <div class="mess-preview" id="messPreview">
+                    <h4 id="messName">Loading Hostel Details...</h4>
+                    <p id="messPrice">₹ -- / month</p>
+                </div>
+
+                <div id="loginWarning" style="display: none; color: #ffb7b7; margin-bottom: 20px; font-size: 0.85rem;">
+                    Please login as a student to join this hostel.
+                </div>
+
+                <button class="confirm-btn" id="confirmJoinBtn">Confirm Join Now</button>
+                <button class="cancel-btn" onclick="history.back()">Cancel & Return</button>
+            </div>
+
+            <div id="loadingOverlay">
+                <div class="spinner"></div>
+                <p id="statusMsg">Processing enrollment...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const messId = urlParams.get('id');
+        
+        async function loadJoinDetails() {
+            // Check protocol
+            if (window.location.protocol === 'file:') {
+                alert('CRITICAL: Please open this app via http://localhost:5000 instead of double-clicking the file. Local storage and API calls will fail on file:// protocol.');
+            }
+
+            if (!messId || messId === 'undefined' || messId === 'null') {
+                alert('No hostel selected or invalid ID.');
+                window.location.href = 'browse.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/messes/${messId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const mess = data.data;
+                    document.getElementById('messName').textContent = mess.name;
+                    document.getElementById('messPrice').textContent = `₹ ${mess.monthlyPrice} / month`;
+                }
+            } catch (error) {
+                console.error('Error loading details:', error);
+            }
+        }
+
+        document.getElementById('confirmJoinBtn').addEventListener('click', async () => {
+            const studentId = localStorage.getItem('studentId');
+            if (!studentId || studentId === 'undefined' || studentId === 'null' || !messId || messId === 'undefined') {
+                alert(`Missing Required Data: Student ID(${studentId}) or Mess ID(${messId}). Please login again.`);
+                document.getElementById('loginWarning').style.display = 'block';
+                setTimeout(() => window.location.href = 'login.html', 2000);
+                return;
+            }
+
+            // UI Switch to Loading
+            document.getElementById('contentStage').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                // Use FULL URL as requested to avoid 'file not found' relative path issues
+                console.log('Fetching join:', { studentId, messId }); // Added debug log
+                const response = await fetch(`http://localhost:5000/students/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ studentId, messId })
+                });
+
+                // Detect wrong response type (HTML instead of JSON)
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("Server returned HTML instead of JSON. Ensure backend is running correctly.");
+                }
+
+                if (response.ok) {
+                    document.getElementById('statusMsg').textContent = 'Request Sent!';
+                    alert('Your information of joining is sent to the hostel owner');
+                    setTimeout(() => window.location.href = 'dashboard.html', 800);
+                } else {
+                    alert(data.message || 'Enrollment failed.');
+                    document.getElementById('contentStage').style.display = 'block';
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Enrollment error:', error);
+                alert('Connection error. Please try again.');
+                document.getElementById('contentStage').style.display = 'block';
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadJoinDetails);
+    </script>
+</body>
+</html>

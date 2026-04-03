@@ -1900,3 +1900,56 @@ body.dark .how-it-works {
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
+
+/* Dashboard Specific Styles */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.dashboard-menu .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.icon-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #64748b;
+    margin-right: 12px;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.menu-item:hover .icon-dot, .menu-item.active .icon-dot {
+    background-color: #ff6b35;
+    transform: scale(1.2);
+}
+
+.menu-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.menu-item:hover, .menu-item.active {
+    background: rgba(255, 107, 53, 0.08);
+    border-left-color: #ff6b35;
+    color: #ff6b35;
+}
+
+.card-body .btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}

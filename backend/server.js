@@ -8,8 +8,9 @@ const connectDatabase = require('./config/database');
 // Import routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
-const messRoutes = require('./routes/mess');
 const reviewRoutes = require('./routes/review');
+const studentRoutes = require('./routes/studentRoutes');
+const messRoutes = require('./routes/mess');
 
 // Initialize app
 const app = express();
@@ -21,10 +22,23 @@ connectDatabase().catch((error) => {
 });
 
 // 🔥 CORS FIX (IMPORTANT)
+const allowedOrigins = [
+  'https://hostel-messfinder-my.onrender.com',
+  'http://localhost:5000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'null', // for file:// protocol
+  undefined
+];
+
 app.use(cors({
-  origin: [
-    "https://hostel-messfinder-my.onrender.com"
-  ],
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -40,6 +54,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messes', messRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/students', studentRoutes);
+app.use('/api/students', studentRoutes); // Support both for safety
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -55,6 +71,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+app.get('/join', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/join.html'));
+});
+
 // API 404
 app.use('/api/*', (req, res) => {
   res.status(404).json({
@@ -64,15 +84,8 @@ app.use('/api/*', (req, res) => {
 });
 
 // Frontend fallback
-app.use('*', (req, res) => {
-  if (req.method !== 'GET') {
-    return res.status(404).json({
-      success: false,
-      message: 'Route not found'
-    });
-  }
-
-  return res.sendFile(path.join(__dirname, '../frontend/index.html'));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 // Error handler
@@ -85,7 +98,7 @@ app.use((err, req, res, next) => {
 });
 
 // 🔥 IMPORTANT FIX (Render Port)
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

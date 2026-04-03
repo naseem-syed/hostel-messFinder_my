@@ -12,7 +12,13 @@ const connectDatabase = async () => {
 
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     try {
-      await mongoose.connect(mongoUri);
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 10000, // 10 seconds to select server
+        connectTimeoutMS: 10000, // 10 seconds to establish connection
+        socketTimeoutMS: 45000, // 45 seconds for socket inactivity
+        bufferCommands: false, // Disable buffering
+        family: 4 // Force IPv4
+      });
       console.log('MongoDB connected successfully');
       return mongoose.connection;
     } catch (error) {

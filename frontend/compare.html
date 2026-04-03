@@ -225,7 +225,7 @@
         </div>
 
         <div class="action-buttons">
-            <button class="btn-back" onclick="goBackToBrowse()">← Back to Browse</button>
+            <button class="btn-back" onclick="goBackToBrowse()">Back to Browse</button>
         </div>
     </div>
 
@@ -293,7 +293,7 @@
                                 ${comparedMesses.map(mess => `
                                     <th class="mess-column">
                                         <div class="mess-name">${mess.name}</div>
-                                        <button class="remove-btn" onclick="removeFromComparison('${mess._id}')">Remove ✕</button>
+                                        <button class="remove-btn" onclick="removeFromComparison('${mess._id}')">Remove</button>
                                     </th>
                                 `).join('')}
                             </tr>
@@ -321,7 +321,7 @@
                                 <td class="feature-name">Overall Rating</td>
                                 ${comparedMesses.map(mess => `
                                     <td class="mess-column mess-rating">
-                                        <div class="rating-badge">★ ${(mess.overallRating || 0).toFixed(1)}</div>
+                                        <div class="rating-badge">Rating: ${(mess.overallRating || 0).toFixed(1)}</div>
                                     </td>
                                 `).join('')}
                             </tr>

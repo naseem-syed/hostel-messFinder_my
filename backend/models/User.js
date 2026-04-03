@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema({
     ref: 'Mess',
     default: null
   },
+  joinedVia: {
+    type: String,
+    enum: ['browse', 'owner', null],
+    default: null
+  },
   loginCount: {
     type: Number,
     default: 0
@@ -52,6 +57,14 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date,
     default: null
+  },
+  photo_url: {
+    type: String,
+    default: null // Base64 image
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
   },
   createdAt: {
     type: Date,

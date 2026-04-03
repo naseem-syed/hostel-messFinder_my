@@ -247,9 +247,9 @@
             <div class="nav-brand">
                 <h1>Hostel Owner Dashboard</h1>
             </div>
-            <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="#" id="logoutLink">Logout</a></li>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="admin-dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </div>
     </nav>
@@ -261,6 +261,8 @@
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('listing', this)">My Listing</button>
+            <button class="tab-btn" onclick="switchTab('students', this)" id="studentsTabBtn" style="display:none;">Manage Students</button>
+            <button class="tab-btn" onclick="switchTab('reviews', this)" id="reviewsTabBtn" style="display:none;">Pending Reviews</button>
             <button class="tab-btn" onclick="switchTab('settings', this)">Settings</button>
         </div>
 
@@ -412,6 +414,53 @@
             </div>
         </div>
 
+        <!-- Manage Students Tab -->
+        <div id="students" class="tab-content">
+            <h3>Manage Verified Students</h3>
+            <p style="margin-bottom: 20px; color: #666;">Add students who currently live in your hostel to allow them to post verified reviews.</p>
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="listing-card">
+                    <h4>Add Student</h4>
+                    <form id="addStudentForm">
+                        <div class="form-group">
+                            <label>Student Email *</label>
+                            <input type="email" id="studentEmail" required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Phone *</label>
+                            <input type="tel" id="studentPhone" required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Student Profile Photo *</label>
+                            <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Required for AI Face Verification against the student's profile.</p>
+                            <input type="file" id="studentPhotoInput" accept="image/*" required class="form-input" style="padding: 10px;">
+                            <img id="studentPhotoPreview" style="max-width: 100px; max-height: 100px; display: none; margin-top: 10px; border-radius: 8px;">
+                        </div>
+                        <div id="studentMessage" style="color: green; margin-bottom: 10px;"></div>
+                        <div id="studentError" style="color: red; margin-bottom: 10px;"></div>
+                        <button type="submit" class="btn btn-primary" id="addStudentBtn">Verify & Add Student</button>
+                    </form>
+                </div>
+                <div class="listing-card" id="yourStudentsSection" style="display: none;">
+                    <h4>Your Students</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">List of all students who have joined or been verified for your hostel.</p>
+                    <div id="yourStudentsList">
+                        Loading students...
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Pending Reviews Tab -->
+        <div id="reviews" class="tab-content">
+            <h3>Pending Reviews</h3>
+            <p style="margin-bottom: 20px; color: #666;">These students have passed AI Face Verification. Approve their reviews to publish them. For privacy, review content and ratings are hidden until approved.</p>
+            <div id="pendingReviewsContainer">
+                Loading pending reviews...
+            </div>
+        </div>
+
         <!-- Settings Tab -->
         <div id="settings" class="tab-content">
             <h3>Settings</h3>
@@ -505,6 +554,52 @@
                     </table>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Student Details Modal -->
+    <div id="studentDetailsModal" class="modal" style="display:none; align-items: center; justify-content: center; background: rgba(0,0,0,0.8);">
+        <div class="modal-content" style="max-width: 600px; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="modalTitle">Student Details</h2>
+                <button class="btn btn-secondary" onclick="closeStudentModal()" style="padding: 5px 15px;">Close</button>
+            </div>
+            <div id="modalBody" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px; text-align: center;">
+                    <img id="modalStudentPhoto" src="" style="width: 180px; height: 180px; border-radius: 12px; object-fit: cover; border: 4px solid var(--primary); margin-bottom: 15px;">
+                </div>
+                <div style="flex: 2; min-width: 250px;">
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Full Name</label>
+                        <p id="modalStudentName" style="font-weight: 700; font-size: 1.1rem; color: #0f172a; margin: 0;"></p>
+                    </div>
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Email Address</label>
+                        <p id="modalStudentEmail" style="font-weight: 600; color: #0f172a; margin: 0;"></p>
+                    </div>
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Phone Number</label>
+                        <p id="modalStudentPhone" style="font-weight: 600; color: #0f172a; margin: 0;"></p>
+                    </div>
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Hostel Name</label>
+                        <p id="modalHostelName" style="font-weight: 600; color: #0f172a; margin: 0;"></p>
+                    </div>
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Verification Status</label>
+                        <p style="font-weight: 700; color: #10b981; margin: 0;">Verified</p>
+                    </div>
+                    <div class="info-group" style="margin-bottom: 12px;">
+                        <label style="font-weight: 800; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Date Verified</label>
+                        <p id="modalDateVerified" style="font-weight: 600; color: #0f172a; margin: 0;"></p>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 25px; text-align: right;">
+                <button class="btn btn-secondary" onclick="closeStudentModal()" style="padding: 10px 25px;">Close</button>
             </div>
         </div>
     </div>

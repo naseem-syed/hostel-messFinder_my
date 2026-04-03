@@ -15,7 +15,7 @@ const generateToken = (id) => {
 // @access  Public
 exports.register = async (req, res) => {
   try {
-    const { name, email, phone, college, password, role } = req.body;
+    const { name, email, phone, college, password, role, photo_url } = req.body;
 
     // Validation
     if (!name || !email || !phone || !password) {
@@ -29,12 +29,20 @@ exports.register = async (req, res) => {
     const validRoles = ['student', 'owner', 'hostel_owner'];
     const userRole = role === 'owner' ? 'hostel_owner' : (role || 'student');
     
-    // College is required for students
-    if (userRole === 'student' && !college) {
-      return res.status(400).json({
-        success: false,
-        message: 'College name is required for students'
-      });
+    // College and Photo are mandatory for students
+    if (userRole === 'student') {
+      if (!college) {
+        return res.status(400).json({
+          success: false,
+          message: 'College name is required for students'
+        });
+      }
+      if (!photo_url) {
+        return res.status(400).json({
+          success: false,
+          message: 'Profile photo is required for students for identity verification'
+        });
+      }
     }
     
     if (!validRoles.includes(userRole) && userRole !== 'student') {
@@ -53,6 +61,18 @@ exports.register = async (req, res) => {
       });
     }
 
+    // AI Face Detection Validation
+    if (userRole === 'student' && photo_url) {
+      const aiService = require('../services/aiService');
+      const faceResult = await aiService.detectHumanFace(photo_url);
+      if (!faceResult.hasFace) {
+        return res.status(400).json({
+          success: false,
+          message: faceResult.message
+        });
+      }
+    }
+
     // Create user
     user = await User.create({
       name,
@@ -60,7 +80,8 @@ exports.register = async (req, res) => {
       phone,
       college,
       password,
-      role: userRole
+      role: userRole,
+      photo_url: photo_url || null
     });
 
     const token = generateToken(user._id);
@@ -69,7 +90,10 @@ exports.register = async (req, res) => {
       name: user.name,
       email: user.email,
       college: user.college,
-      role: user.role
+      role: user.role,
+      photo_url: user.photo_url,
+      isVerified: user.isVerified,
+      joinedMessId: user.joinedMessId
     };
 
     res.status(201).json({
@@ -133,7 +157,10 @@ exports.login = async (req, res) => {
       name: user.name,
       email: user.email,
       college: user.college,
-      role: user.role
+      role: user.role,
+      photo_url: user.photo_url,
+      isVerified: user.isVerified,
+      joinedMessId: user.joinedMessId
     };
 
     res.status(200).json({
@@ -251,6 +278,9 @@ exports.getCurrentUser = async (req, res) => {
         phone: user.phone,
         college: user.college,
         role: user.role,
+        photo_url: user.photo_url,
+        joinedMessId: user.joinedMessId,
+        isVerified: user.isVerified,
         createdAt: user.createdAt
       }
     });
@@ -259,5 +289,55 @@ exports.getCurrentUser = async (req, res) => {
       success: false,
       message: 'Error fetching user'
     });
+  }
+};
+
+// @desc    Update current user profile (including photo)
+// @route   PUT /api/auth/me
+// @access  Private
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, college, photo_url } = req.body;
+    
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (college) user.college = college;
+    
+    if (photo_url) {
+      // AI Face Detection Validation
+      const aiService = require('../services/aiService');
+      const faceResult = await aiService.detectHumanFace(photo_url);
+      if (!faceResult.hasFace) {
+        return res.status(400).json({
+          success: false,
+          message: faceResult.message
+        });
+      }
+      user.photo_url = photo_url;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        college: user.college,
+        photo_url: user.photo_url,
+        role: user.role,
+        isVerified: user.isVerified,
+        joinedMessId: user.joinedMessId
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating profile', error: error.message });
   }
 };

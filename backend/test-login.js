@@ -17,10 +17,10 @@ async function debugLogin() {
   if (admin) {
     console.log('Admin role:', admin.role);
     console.log('Admin password hash in DB:', admin.password);
-    
+
     const isMatch = await bcrypt.compare(password, admin.password);
     console.log('bcrypt.compare result:', isMatch);
-    
+
     // Test matchPassword method
     const methodMatch = await admin.matchPassword(password);
     console.log('matchPassword method result:', methodMatch);
@@ -30,3 +30,5 @@ async function debugLogin() {
 }
 
 debugLogin();
+
+

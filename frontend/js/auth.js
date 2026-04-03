@@ -1,11 +1,12 @@
 const getApiBaseUrl = () => {
     const isLocal =
         window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1";
+        window.location.hostname === "127.0.0.1" ||
+        window.location.protocol === "file:";
 
     return isLocal
         ? "http://localhost:5000/api"   // Local development
-        : `${window.location.origin}/api`; // Production (Render)
+        : `${window.location.origin}/api`; // Production
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -59,27 +60,34 @@ function ensureThemeToggle() {
 function updateNavigation() {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
-    const loginLink = document.getElementById('loginLink');
-    const registerLink = document.getElementById('registerLink');
-    const dashboardLink = document.getElementById('dashboardLink');
-    const logoutLink = document.getElementById('logoutLink');
+    const navLinks = document.getElementById('navLinks');
+    if (!navLinks) return;
 
-    const dashboardPath = getDashboardPath(userType);
+    const path = window.location.pathname;
+
+    // Clear and rebuild navbar
+    navLinks.innerHTML = `<li><a href="index.html" ${path.includes('index.html') || path === '/' ? 'class="active"' : ''}>Home</a></li>`;
+    navLinks.innerHTML += `<li><a href="browse.html" ${path.includes('browse.html') ? 'class="active"' : ''}>Browse Messes</a></li>`;
 
     if (token) {
-        // User is logged in
-        if (loginLink) loginLink.style.display = 'none';
-        if (registerLink) registerLink.style.display = 'none';
-        if (dashboardLink) dashboardLink.style.display = 'inline';
-        if (dashboardLink) dashboardLink.href = dashboardPath;
-        if (logoutLink) logoutLink.style.display = 'inline';
+        const dashboardPath = getDashboardPath(userType);
+        const onDashboard = path.includes('dashboard.html');
+        navLinks.innerHTML += `<li><a href="${dashboardPath}" id="dashboardLink" ${onDashboard ? 'class="active"' : ''}>Dashboard</a></li>`;
+        navLinks.innerHTML += '<li><a href="#" id="logoutLink">Logout</a></li>';
+        
+        const logoutLink = document.getElementById('logoutLink');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
+            });
+        }
     } else {
-        // User is not logged in
-        if (loginLink) loginLink.style.display = 'inline';
-        if (registerLink) registerLink.style.display = 'inline';
-        if (dashboardLink) dashboardLink.style.display = 'none';
-        if (logoutLink) logoutLink.style.display = 'none';
+        navLinks.innerHTML += `<li><a href="login.html" id="loginLink" ${path.includes('login.html') ? 'class="active"' : ''}>Login</a></li>`;
+        navLinks.innerHTML += `<li><a href="register.html" id="registerLink" ${path.includes('register.html') ? 'class="active"' : ''}>Register</a></li>`;
     }
+
+    ensureThemeToggle();
 }
 
 // Logout function
@@ -115,6 +123,12 @@ async function getCurrentUser() {
 
         if (response.ok) {
             const data = await response.json();
+            if (data.success && data.user) {
+                // Update localStorage with fresh user data
+                localStorage.setItem('user', JSON.stringify(data.user));
+                const studentId = data.user.id || data.user._id;
+                if (studentId) localStorage.setItem('studentId', studentId);
+            }
             return data.user;
         }
     } catch (error) {
@@ -144,6 +158,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const storedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(storedTheme);
+
+    // Redirect logged-in users away from login/register pages
+    const path = window.location.pathname;
+    const isAuthPage = path.includes('login.html') || path.includes('register.html');
+    
+    if (isAuthenticated() && isAuthPage) {
+        const userType = localStorage.getItem('userType');
+        window.location.href = getDashboardPath(userType);
+        return;
+    }
 
     window.addEventListener('scroll', () => {
         updateNavbarState();

@@ -47,6 +47,16 @@ const reviewSchema = new mongoose.Schema({
     min: [1, 'Rating must be at least 1'],
     max: [5, 'Rating cannot exceed 5']
   },
+  varietyOfMenuRating: {
+    type: Number,
+    min: [1, 'Rating must be at least 1'],
+    max: [5, 'Rating cannot exceed 5']
+  },
+  waitingTimeRating: {
+    type: Number,
+    min: [1, 'Rating must be at least 1'],
+    max: [5, 'Rating cannot exceed 5']
+  },
   review: {
     type: String,
     trim: true,
@@ -63,8 +73,8 @@ const reviewSchema = new mongoose.Schema({
   },
   quantity: {
     type: String,
-    enum: ['limited', 'unlimited'],
-    default: 'unlimited'
+    enum: ['very-less', 'less', 'enough', 'more', 'excellent-quantity'],
+    default: 'enough'
   },
   verifiedStudent: {
     type: Boolean,
@@ -74,17 +84,35 @@ const reviewSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  aiMetadata: {
+    sentiment: {
+      score: Number,
+      label: String
+    },
+    fakeDetection: {
+      isFake: Boolean,
+      confidence: Number,
+      reason: String
+    },
+    spamDetection: {
+      isSpam: Boolean,
+      confidence: Number
+    }
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
   createdAt: {
     type: Date,
     default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+}, {
+  timestamps: true
 });
 
-// Compound index to ensure one review per student per mess
+// One student can only review a mess once
 reviewSchema.index({ userId: 1, messId: 1 }, { unique: true });
 
 // Pre-save hook to update mess ratings
@@ -108,6 +136,12 @@ reviewSchema.statics.calculateAverageRating = async function(messId) {
         averageRating: { $avg: '$rating' },
         averageHygiene: { $avg: '$hygieneRating' },
         averageFood: { $avg: '$foodQualityRating' },
+        averageStaff: { $avg: '$staffBehaviorRating' },
+        averageValue: { $avg: '$valueForMoneyRating' },
+        averageCleaning: { $avg: '$diningAreaCleanlinessRating' },
+        averageTimeliness: { $avg: '$timelinessRating' },
+        averageVariety: { $avg: '$varietyOfMenuRating' },
+        averageWaitingTime: { $avg: '$waitingTimeRating' },
         totalReviews: { $sum: 1 }
       }
     }
@@ -119,6 +153,12 @@ reviewSchema.statics.calculateAverageRating = async function(messId) {
         overallRating: Math.round(obj[0].averageRating * 10) / 10,
         hygieneRating: Math.round(obj[0].averageHygiene * 10) / 10,
         foodQualityRating: Math.round(obj[0].averageFood * 10) / 10,
+        staffBehaviorRating: Math.round(obj[0].averageStaff * 10) / 10,
+        valueForMoneyRating: Math.round(obj[0].averageValue * 10) / 10,
+        diningAreaCleanlinessRating: Math.round(obj[0].averageCleaning * 10) / 10,
+        timelinessRating: Math.round(obj[0].averageTimeliness * 10) / 10,
+        varietyOfMenuRating: Math.round(obj[0].averageVariety * 10) / 10,
+        waitingTimeRating: Math.round(obj[0].averageWaitingTime * 10) / 10,
         totalReviews: obj[0].totalReviews
       });
     }
@@ -139,4 +179,6 @@ reviewSchema.post('findByIdAndUpdate', async function(doc) {
   }
 });
 
-module.exports = mongoose.model('Review', reviewSchema);
+const Review = mongoose.model('Review', reviewSchema);
+
+module.exports = Review;

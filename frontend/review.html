@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write Review - Hostel Mess Finder</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #4ecdc4;
+            --text-dark: #2d3436;
+            --text-gray: #636e72;
+            --bg-soft: #f9fafb;
+            --white: #ffffff;
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --gold: #f59e0b;
+        }
+
+        body {
+            background-color: var(--bg-soft);
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #reviewPageContent {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            border: none;
+            margin-bottom: 30px;
+        }
+
+        .card-body {
+            padding: 35px;
+        }
+
+        .form-section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 40px 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f3f4f6;
+            display: block;
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .sub-label {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            margin-bottom: 4px;
+            font-weight: 400;
+        }
+
+        /* Review Container Flow */
+        .review-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Star Rating Style */
+        .star-rating-container {
+            display: flex;
+            align-items: center;
+            height: 48px;
+        }
+
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 8px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            background-color: #e5e7eb;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            transition: all 0.2s ease;
+        }
+
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            background-color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        /* Input Controls */
+        .form-input, select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #edf2f7;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            background: #fff;
+        }
+
+        .form-input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.08);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        /* Custom File Input */
+        .file-input-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 24px;
+            background: #f8fafc;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 10px;
+            color: var(--text-gray);
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        .file-input-btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Layout Helpers */
+        .centered-card {
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Action Button */
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover {
+            filter: brightness(0.95);
+            transform: translateY(-1px);
+        }
+
+        .error-message {
+            background-color: #fff5f5;
+            border-left: 4px solid #feb2b2;
+            color: #c53030;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            display: none;
+        }
+
+        .no-content {
+            text-align: center;
+            padding: 60px 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>Hostel Mess Finder</h1>
+            </div>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse Messes</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="#" id="logoutLink">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-wrapper">
+            <aside class="dashboard-sidebar">
+                <div class="user-profile">
+                    <div class="user-avatar" id="sidebarAvatar">User</div>
+                    <h3 id="userName">User Name</h3>
+                    <p id="userEmail" style="font-size: 0.85rem;">email@example.com</p>
+                </div>
+
+                <nav class="dashboard-menu">
+                    <a href="index.html" class="menu-item">
+                        <span class="icon-dot"></span> Home
+                    </a>
+                    <a href="dashboard.html" class="menu-item">
+                        <span class="icon-dot"></span> Dashboard Home
+                    </a>
+                    <a href="browse.html" class="menu-item">
+                        <span class="icon-dot"></span> Browse New Messes
+                    </a>
+                    <a href="review.html" class="menu-item active">
+                        <span class="icon-dot"></span> Write Review
+                    </a>
+                    <a href="dashboard.html?tab=reviewsTab" class="menu-item">
+                        <span class="icon-dot"></span> My Reviews
+                    </a>
+                    <a href="profile.html" class="menu-item">
+                        <span class="icon-dot"></span> My Profile
+                    </a>
+                    <a href="#" class="menu-item">
+                        <span class="icon-dot"></span> Notifications
+                    </a>
+                    <a href="my-hostel.html" class="menu-item">
+                        <span class="icon-dot"></span> My Hostel
+                    </a>
+                </nav>
+            </aside>
+
+            <main class="dashboard-content">
+                <div id="reviewPageContent">
+                    <h2 id="reviewPageTitle">Write a Review</h2>
+                    
+                    <div id="notEligibleMessage" style="display:none;" class="no-content card">
+                        <div class="card-body" style="text-align: center; padding: 40px;">
+                            <div style="font-size: 2rem; margin-bottom: 20px; font-weight: 700;">RESTRICTED</div>
+                            <h3 style="margin-bottom: 15px;">Access Restricted</h3>
+                            <p>You are not assigned to a hostel yet or your verification is pending by the owner.</p>
+                            <p style="font-size: 0.95rem; color: #7f8c8d; margin-top: 10px; margin-bottom: 25px;">Only verified students of a hostel can submit reviews to ensure authenticity.</p>
+                            <a href="my-hostel.html" class="btn btn-primary" style="padding: 12px 30px; font-weight: 600;">Check My Hostel Status</a>
+                        </div>
+                    </div>
+
+                    <div id="reviewFormContainer" style="display:none;">
+                        <div id="hostelInfo" class="card" style="margin-bottom: 25px; border-left: 5px solid var(--primary); background: #fffaf0;">
+                            <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+                                <div>
+                                    <h3 id="hostelName" style="margin: 0; color: var(--text-dark);">Loading Hostel...</h3>
+                                    <p id="hostelLocation" style="margin: 5px 0 0 0; color: #666; font-size: 0.95rem;">Location</p>
+                                </div>
+                                <div style="background: var(--primary); color: white; padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                                    Verified Member
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="border-radius: 12px; box-shadow: var(--shadow-md); margin-top: 0;">
+                            <div class="card-body" style="padding: 30px;">
+                                <form id="reviewForm">
+                                    <div class="form-section-title">
+                                        Basic Ratings
+                                    </div>
+                                    <div class="review-container">
+                                        <div class="form-group">
+                                            <label>Overall Rating *</label>
+                                            <p class="sub-label">Your total satisfaction with the mess service</p>
+                                            <div class="star-rating-container">
+                                                <div class="star-rating" data-name="rating">
+                                                    <input type="radio" name="rating" id="rating-5" value="5"><label for="rating-5"></label>
+                                                    <input type="radio" name="rating" id="rating-4" value="4"><label for="rating-4"></label>
+                                                    <input type="radio" name="rating" id="rating-3" value="3"><label for="rating-3"></label>
+                                                    <input type="radio" name="rating" id="rating-2" value="2"><label for="rating-2"></label>
+                                                    <input type="radio" name="rating" id="rating-1" value="1"><label for="rating-1"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Food Quality -->
+                                        <div class="form-group">
+                                            <label>Food Quality *</label>
+                                            <p class="sub-label">Taste, freshness, and quality of food items</p>
+                                            <div class="star-rating-container">
+                                                <div class="star-rating" data-name="foodQualityRating">
+                                                    <input type="radio" name="foodQualityRating" id="fq-5" value="5"><label for="fq-5"></label>
+                                                    <input type="radio" name="foodQualityRating" id="fq-4" value="4"><label for="fq-4"></label>
+                                                    <input type="radio" name="foodQualityRating" id="fq-3" value="3"><label for="fq-3"></label>
+                                                    <input type="radio" name="foodQualityRating" id="fq-2" value="2"><label for="fq-2"></label>
+                                                    <input type="radio" name="foodQualityRating" id="fq-1" value="1"><label for="fq-1"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Hygiene Rating -->
+                                        <div class="form-group">
+                                            <label>Hygiene Rating *</label>
+                                            <p class="sub-label">Cleanliness of the kitchen and serving tools</p>
+                                            <div class="star-rating-container">
+                                                <div class="star-rating" data-name="hygieneRating">
+                                                    <input type="radio" name="hygieneRating" id="hy-5" value="5"><label for="hy-5"></label>
+                                                    <input type="radio" name="hygieneRating" id="hy-4" value="4"><label for="hy-4"></label>
+                                                    <input type="radio" name="hygieneRating" id="hy-3" value="3"><label for="hy-3"></label>
+                                                    <input type="radio" name="hygieneRating" id="hy-2" value="2"><label for="hy-2"></label>
+                                                    <input type="radio" name="hygieneRating" id="hy-1" value="1"><label for="hy-1"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Staff Behavior -->
+                                        <div class="form-group">
+                                            <label>Staff Behavior *</label>
+                                            <p class="sub-label">Very Rude (1) to Very Friendly (5)</p>
+                                            <div class="star-rating-container">
+                                                <div class="star-rating" data-name="staffBehaviorRating">
+                                                    <input type="radio" name="staffBehaviorRating" id="sb-5" value="5"><label for="sb-5"></label>
+                                                    <input type="radio" name="staffBehaviorRating" id="sb-4" value="4"><label for="sb-4"></label>
+                                                    <input type="radio" name="staffBehaviorRating" id="sb-3" value="3"><label for="sb-3"></label>
+                                                    <input type="radio" name="staffBehaviorRating" id="sb-2" value="2"><label for="sb-2"></label>
+                                                    <input type="radio" name="staffBehaviorRating" id="sb-1" value="1"><label for="sb-1"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-section-title">
+                                        Food Experience
+                                    </div>
+
+                                    <div class="review-container">
+                                         <!-- Value for Money -->
+                                         <div class="form-group">
+                                             <label>Value for Money *</label>
+                                             <p class="sub-label">Is the price justified by the food quality?</p>
+                                             <div class="star-rating-container">
+                                                 <div class="star-rating" data-name="valueForMoneyRating">
+                                                     <input type="radio" name="valueForMoneyRating" id="vm-5" value="5"><label for="vm-5"></label>
+                                                     <input type="radio" name="valueForMoneyRating" id="vm-4" value="4"><label for="vm-4"></label>
+                                                     <input type="radio" name="valueForMoneyRating" id="vm-3" value="3"><label for="vm-3"></label>
+                                                     <input type="radio" name="valueForMoneyRating" id="vm-2" value="2"><label for="vm-2"></label>
+                                                     <input type="radio" name="valueForMoneyRating" id="vm-1" value="1"><label for="vm-1"></label>
+                                                 </div>
+                                             </div>
+                                         </div>
+
+                                         <!-- Dining Area Cleanliness -->
+                                         <div class="form-group">
+                                             <label>Dining Area Cleanliness *</label>
+                                             <p class="sub-label">Cleanliness of tables, floors, and chairs</p>
+                                             <div class="star-rating-container">
+                                                 <div class="star-rating" data-name="diningAreaCleanlinessRating">
+                                                     <input type="radio" name="diningAreaCleanlinessRating" id="dc-5" value="5"><label for="dc-5"></label>
+                                                     <input type="radio" name="diningAreaCleanlinessRating" id="dc-4" value="4"><label for="dc-4"></label>
+                                                     <input type="radio" name="diningAreaCleanlinessRating" id="dc-3" value="3"><label for="dc-3"></label>
+                                                     <input type="radio" name="diningAreaCleanlinessRating" id="dc-2" value="2"><label for="dc-2"></label>
+                                                     <input type="radio" name="diningAreaCleanlinessRating" id="dc-1" value="1"><label for="dc-1"></label>
+                                                 </div>
+                                             </div>
+                                         </div>
+
+                                         <!-- Timeliness -->
+                                         <div class="form-group">
+                                             <label>Timeliness *</label>
+                                             <p class="sub-label">Is food served on time as per schedule?</p>
+                                             <div class="star-rating-container">
+                                                 <div class="star-rating" data-name="timelinessRating">
+                                                     <input type="radio" name="timelinessRating" id="tm-5" value="5"><label for="tm-5"></label>
+                                                     <input type="radio" name="timelinessRating" id="tm-4" value="4"><label for="tm-4"></label>
+                                                     <input type="radio" name="timelinessRating" id="tm-3" value="3"><label for="tm-3"></label>
+                                                     <input type="radio" name="timelinessRating" id="tm-2" value="2"><label for="tm-2"></label>
+                                                     <input type="radio" name="timelinessRating" id="tm-1" value="1"><label for="tm-1"></label>
+                                                 </div>
+                                             </div>
+                                         </div>
+
+                                         <!-- Food Quantity Select -->
+                                         <div class="form-group">
+                                             <label for="quantity">Food Quantity *</label>
+                                             <p class="sub-label">Select the average serving size</p>
+                                             <select id="quantity" required class="form-input">
+                                                 <option value="">Select quantity...</option>
+                                                 <option value="very-less">Very Less</option>
+                                                 <option value="less">Less</option>
+                                                 <option value="enough" selected>Enough</option>
+                                                 <option value="more">More</option>
+                                                 <option value="excellent-quantity">Excellent Quantity</option>
+                                             </select>
+                                         </div>
+                                    </div>
+
+                                    <div class="form-section-title">
+                                        Review Section
+                                    </div>
+
+                                    <!-- Review Text -->
+                                    <div class="form-group">
+                                        <label for="reviewText">Detailed Experience *</label>
+                                        <p class="sub-label">Describe the taste, variety, and any specific feedback</p>
+                                        <textarea id="reviewText" required maxlength="1000" rows="6" placeholder="Write your honest review here..."></textarea>
+                                        <p id="charCount" style="font-size: 0.8rem; color: #9ca3af; text-align: right; margin-top: 5px; font-weight: 500;">0/1000 characters</p>
+                                    </div>
+
+                                    <div class="review-container" style="margin-top: 25px;">
+                                        <!-- Photo Upload -->
+                                        <div class="form-group">
+                                            <label>Food Photo (Optional)</label>
+                                            <p class="sub-label">Sharing a photo helps others see the quality</p>
+                                            <div class="file-upload-wrapper">
+                                                <label for="foodPhoto" class="file-input-btn">
+                                                    Click to Upload Photo
+                                                </label>
+                                                <input type="file" id="foodPhoto" accept="image/*">
+                                            </div>
+                                            <div id="photoPreview" style="margin-top: 20px; display: none;">
+                                                <div style="position: relative; display: inline-block; padding: 5px; background: #fff; border-radius: 12px; box-shadow: var(--shadow-md);">
+                                                    <img src="" style="max-width: 180px; border-radius: 10px; display: block;">
+                                                    <button type="button" id="removePhoto" style="position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">X</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Voice Note Upload -->
+                                        <div class="form-group">
+                                            <label>Voice Review (Optional)</label>
+                                            <p class="sub-label">Quickly speak your review instead of typing</p>
+                                            <div class="file-upload-wrapper">
+                                                <label for="voiceNote" class="file-input-btn">
+                                                    Click to Record / Upload
+                                                </label>
+                                                <input type="file" id="voiceNote" accept="audio/*">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="errorMessage" class="error-message"></div>
+                                    <div id="successMessage" style="color: #10b981; margin: 20px 0; font-weight: 600; text-align: center; display: none; background: #ecfdf5; padding: 18px; border-radius: 12px; border-left: 5px solid #10b981;"></div>
+                                    
+                                    <div style="margin-top: 30px;">
+                                        <button type="submit" id="submitBtn" class="btn-submit">Submit Your Review</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Hostel Mess Finder. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            protectRoute();
+            const user = await getCurrentUser();
+            
+            if (user) {
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userEmail').textContent = user.email;
+                if (user.photo_url) {
+                    document.getElementById('sidebarAvatar').innerHTML = `<img src="${user.photo_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                }
+
+                if (user.joinedMessId && user.isVerified) {
+                    document.getElementById('reviewFormContainer').style.display = 'block';
+                    loadHostelInfo(user.joinedMessId);
+                    checkExistingReview(user.id, user.joinedMessId);
+                } else {
+                    document.getElementById('notEligibleMessage').style.display = 'block';
+                }
+            }
+
+            // Photo Preview
+            const foodPhoto = document.getElementById('foodPhoto');
+            const photoPreview = document.getElementById('photoPreview');
+            const previewImg = photoPreview.querySelector('img');
+            const removePhotoBtn = document.getElementById('removePhoto');
+
+            foodPhoto.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const base64 = await toBase64(file);
+                    previewImg.src = base64;
+                    photoPreview.style.display = 'block';
+                }
+            });
+
+            removePhotoBtn.addEventListener('click', () => {
+                foodPhoto.value = '';
+                photoPreview.style.display = 'none';
+                previewImg.src = '';
+            });
+
+            // Character count
+            const reviewText = document.getElementById('reviewText');
+            const charCount = document.getElementById('charCount');
+            reviewText.addEventListener('input', () => {
+                const len = reviewText.value.length;
+                charCount.textContent = `${len}/1000 characters`;
+                charCount.style.color = len > 900 ? '#ef4444' : '#666';
+            });
+
+            // Form submission
+            document.getElementById('reviewForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                // Add fields that might not be in FormData if not checked/set
+                const fields = [
+                    'rating', 'foodQualityRating', 'hygieneRating', 
+                    'staffBehaviorRating', 'valueForMoneyRating', 
+                    'diningAreaCleanlinessRating', 'timelinessRating'
+                ];
+                
+                let missingFields = [];
+                fields.forEach(field => {
+                    if (!data[field] || data[field] === "0") {
+                        missingFields.push(field);
+                        data[field] = 0;
+                    } else {
+                        data[field] = parseInt(data[field]);
+                    }
+                });
+
+                if (data.rating === 0 || data.foodQualityRating === 0 || !reviewText.value.trim()) {
+                    const err = document.getElementById('errorMessage');
+                    err.textContent = 'Please provide Overall Rating, Food Quality, and Review text.';
+                    err.style.display = 'block';
+                    err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                const submitBtn = document.getElementById('submitBtn');
+                const existingId = submitBtn.dataset.existingId;
+                
+                submitBtn.disabled = true;
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Processing...';
+
+                try {
+                    const url = existingId ? `${API_BASE_URL}/reviews/${existingId}` : `${API_BASE_URL}/reviews`;
+                    const method = existingId ? 'PUT' : 'POST';
+                    
+                    const payload = {
+                        messId: user.joinedMessId,
+                        ...data,
+                        review: reviewText.value.trim(),
+                        quantity: document.getElementById('quantity').value
+                    };
+
+                    const photoFile = foodPhoto.files[0];
+                    if (photoFile) {
+                        payload.foodImage = await toBase64(photoFile);
+                    } else if (previewImg.src.startsWith('data:')) {
+                        payload.foodImage = previewImg.src;
+                    }
+
+                    const res = await fetch(url, {
+                        method,
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(payload)
+                    });
+                    const resData = await res.json();
+                    
+                    if (resData.success) {
+                        const successMsg = document.getElementById('successMessage');
+                        successMsg.textContent = existingId ? 'Review updated successfully!' : 'Review submitted successfully!';
+                        successMsg.style.display = 'block';
+                        document.getElementById('errorMessage').style.display = 'none';
+                        
+                        // Scroll to success message
+                        successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
+                    } else {
+                        const err = document.getElementById('errorMessage');
+                        err.textContent = resData.message || 'Error submitting review.';
+                        err.style.display = 'block';
+                    }
+                } catch (err) {
+                    const errorBox = document.getElementById('errorMessage');
+                    errorBox.textContent = 'Server error connecting to API.';
+                    errorBox.style.display = 'block';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            };
+        });
+
+        async function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function loadHostelInfo(messId) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/messes/${messId}`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('hostelName').textContent = data.data.name;
+                    document.getElementById('hostelLocation').textContent = data.data.location;
+                }
+            } catch (err) {}
+        }
+
+        async function checkExistingReview(userId, messId) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/reviews/user/${userId}/${messId}`, {
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const review = data.data;
+                    document.getElementById('reviewPageTitle').textContent = 'Edit Your Review';
+                    document.getElementById('reviewText').value = review.review;
+                    document.getElementById('charCount').textContent = `${review.review.length}/1000 characters`;
+                    document.getElementById('quantity').value = review.quantity || 'enough';
+                    document.getElementById('submitBtn').textContent = 'Update Review';
+                    document.getElementById('submitBtn').dataset.existingId = review._id;
+                    
+                    // Set all star ratings
+                    const fields = [
+                        'rating', 'foodQualityRating', 'hygieneRating', 
+                        'staffBehaviorRating', 'valueForMoneyRating', 
+                        'diningAreaCleanlinessRating', 'timelinessRating'
+                    ];
+                    
+                    fields.forEach(field => {
+                        if (review[field]) {
+                            const radio = document.querySelector(`input[name="${field}"][value="${review[field]}"]`);
+                            if (radio) radio.checked = true;
+                        }
+                    });
+                }
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>
